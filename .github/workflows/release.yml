@@ -1,0 +1,59 @@
+name: Release
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  build-and-upload:
+    name: Build and Upload
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            asset_name: crabby-linux-amd64.tar.gz
+            binary_name: crabby
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            asset_name: crabby-windows-amd64.zip
+            binary_name: crabby.exe
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            asset_name: crabby-macos-amd64.tar.gz
+            binary_name: crabby
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build
+        run: cargo build --release --locked
+
+      - name: Archive binary (Linux/macOS)
+        if: matrix.os != 'windows-latest'
+        run: |
+          cd target/release
+          tar -czf ../../${{ matrix.asset_name }} ${{ matrix.binary_name }}
+          cd ../..
+
+      - name: Archive binary (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          cd target/release
+          7z a ../../${{ matrix.asset_name }} ${{ matrix.binary_name }}
+          cd ../..
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./${{ matrix.asset_name }}
+          asset_name: ${{ matrix.asset_name }}
+          asset_content_type: application/octet-stream
