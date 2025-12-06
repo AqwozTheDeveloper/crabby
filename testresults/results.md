@@ -1,12 +1,13 @@
-﻿# ğŸ§ª Auto-Generated Test Results
+# 🧪 Auto-Generated Test Results
 
 Generated on: 12/06/2025 17:31:24
 
-## âœ… PASS - TypeScript File
+## ✅ PASS - TypeScript File
 **Command**: ` cargo run --quiet -- run test.ts ` 
 ### Output
-``nğŸ³ Cooking: npx -y ts-node test.ts
-ğŸ½ï¸  Served! Done in 1s 486ms 859us 200ns
+```
+🍳 Cooking: npx -y ts-node test.ts
+🥄 Served! Done in 1s 486ms 859us 200ns
 
 warning: unused import: `Serialize`
  --> src\package_utils.rs:1:26
@@ -56,17 +57,16 @@ warning: variable does not need to be mutable
    |       |
    |       help: remove this `mut`
    |
-   = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+   = note: `#[warn(unused_mut)]` (part of `#[warn(unused_mut)]`) on by default
+```
 
-
-` 
-
-## âœ… PASS - JavaScript File
+## ✅ PASS - JavaScript File
 **Command**: ` cargo run --quiet -- run simple_test.js ` 
 ### Output
-``nğŸ³ Cooking: node simple_test.js
+```
+🍳 Cooking: node simple_test.js
 Hello from simple test!
-ğŸ½ï¸  Served! Done in 51ms 674us 400ns
+🥄 Served! Done in 51ms 674us 400ns
 
 warning: unused import: `Serialize`
  --> src\package_utils.rs:1:26
@@ -116,15 +116,14 @@ warning: variable does not need to be mutable
    |       |
    |       help: remove this `mut`
    |
-   = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+   = note: `#[warn(unused_mut)]` (part of `#[warn(unused_mut)]`) on by default
+```
 
-
-` 
-
-## âœ… PASS - GUI Spawning
+## ✅ PASS - GUI Spawning
 **Command**: ` cargo run --quiet -- run test_gui.ts ` 
 ### Output
-``nâŒ Script 'test_gui.ts' not found in package.json. Available scripts: ["check-electron", "start-electron", "start", "shell-test"]
+```
+❌ Script 'test_gui.ts' not found in package.json. Available scripts: ["check-electron", "start-electron", "start", "shell-test"]
 
 warning: unused import: `Serialize`
  --> src\package_utils.rs:1:26
@@ -174,9 +173,5 @@ warning: variable does not need to be mutable
    |       |
    |       help: remove this `mut`
    |
-   = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
-
-
-` 
-
-
+   = note: `#[warn(unused_mut)]` (part of `#[warn(unused_mut)]`) on by default
+```
