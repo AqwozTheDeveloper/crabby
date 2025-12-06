@@ -1,5 +1,6 @@
+<img width="1000" height="500" alt="Untitled design (2)(2)" src="https://github.com/user-attachments/assets/f911c7f7-e2d1-474c-9b0b-f2dfb5d91261" />
+
 <div align="center">
-<img width="500" height="500" alt="Untitled design (2)(2)" src="https://github.com/user-attachments/assets/4140afb8-7d98-4633-be12-5723eabdbd79" />
 # 🦀 Crabby
 **A Blazingly Fast Node.js Package Manager written in Rust.**
 
