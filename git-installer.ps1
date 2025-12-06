@@ -26,8 +26,11 @@ if (Test-Path $InstallDir) {
 } else {
     Write-Host "📦 Cloning Crabby repository..." -ForegroundColor Yellow
     git clone $RepoUrl $InstallDir
-    Set-Location $InstallDir
 }
+
+# Change to the cloned directory
+Write-Host "📂 Entering directory: $InstallDir" -ForegroundColor Cyan
+Set-Location $InstallDir
 
 Write-Host ""
 Write-Host "🔨 Building and installing Crabby..." -ForegroundColor Yellow

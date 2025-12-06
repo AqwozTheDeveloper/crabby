@@ -29,8 +29,11 @@ if [ -d "$INSTALL_DIR" ]; then
 else
     echo "📦 Cloning Crabby repository..."
     git clone "$REPO_URL" "$INSTALL_DIR"
-    cd "$INSTALL_DIR"
 fi
+
+# Change to the cloned directory
+echo "📂 Entering directory: $INSTALL_DIR"
+cd "$INSTALL_DIR"
 
 echo ""
 echo "🔨 Building and installing Crabby..."
