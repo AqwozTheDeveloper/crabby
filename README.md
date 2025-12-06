@@ -1,12 +1,13 @@
 <div align="center">
 
 # 🦀 Crabby
-<img width="1139" height="1006" alt="image" src="https://github.com/user-attachments/assets/0e18800c-22b5-4721-a6de-390f46f1b453" />
 **A Blazingly Fast Node.js Package Manager written in Rust.**
 
 [![Rust](https://img.shields.io/badge/built_with-Rust-d35400.svg?style=flat-square)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
+
+<img width="1139" height="1006" alt="image" src="https://github.com/user-attachments/assets/0e18800c-22b5-4721-a6de-390f46f1b453" />
 
 </div>
 
