@@ -1,4 +1,5 @@
-<img width="1000" height="500" alt="Untitled design (2)(2)" src="https://github.com/user-attachments/assets/f911c7f7-e2d1-474c-9b0b-f2dfb5d91261" />
+<img width="1600" height="400" alt="Craa" src="https://github.com/user-attachments/assets/725fffcd-3ae8-47b9-8577-c471f51929bd" />
+
 
 <div align="center">
 # 🦀 Crabby
