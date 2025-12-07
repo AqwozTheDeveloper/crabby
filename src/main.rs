@@ -65,7 +65,7 @@ fn main() -> Result<()> {
         }
         Commands::Cook { script, ts, js } => {
             if let Some(ts_file) = ts {
-                let cmd = format!("npx -y ts-node {}", ts_file);
+                let cmd = format!("npx -y tsx {}", ts_file);
                 runner::run_script(&cmd, None)?;
             } else if let Some(js_file) = js {
                 let cmd = format!("node {}", js_file);
@@ -74,7 +74,7 @@ fn main() -> Result<()> {
                 let path = std::path::Path::new(&script_name);
                 if path.exists() && (script_name.ends_with(".js") || script_name.ends_with(".ts")) {
                     if script_name.ends_with(".ts") {
-                        let cmd = format!("npx -y ts-node {}", script_name);
+                        let cmd = format!("npx -y tsx {}", script_name);
                         runner::run_script(&cmd, None)?;
                     } else {
                         let cmd = format!("node {}", script_name);
