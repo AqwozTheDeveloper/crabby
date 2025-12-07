@@ -99,6 +99,17 @@ async fn main() -> Result<()> {
             println!("{} {}", style("🦀").bold().cyan(), style("Initializing Crabby Kitchen...").bold());
             manifest::ensure_package_files()?;
             println!("{}", style("Created package.json").green());
+            
+            // Create default config file
+            let config_path = std::path::Path::new("crabby.config.json");
+            if !config_path.exists() {
+                let default_config = serde_json::json!({
+                    "registry": "https://registry.npmjs.org",
+                    "log_level": "info"
+                });
+                std::fs::write(config_path, serde_json::to_string_pretty(&default_config)?)?;
+                println!("{}", style("Created crabby.config.json").green());
+            }
         }
         Commands::Cook { script, ts, js } => {
             let node_path = node_runtime::get_node_path()?;
