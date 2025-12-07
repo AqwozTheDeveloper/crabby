@@ -2,16 +2,17 @@
   "name": "my-crabby-project",
   "version": "1.0.0",
   "scripts": {
+    "start": "node test.js",
     "shell-test": "echo Shell && echo Works",
     "start-electron": "electron main.js",
-    "check-electron": "electron --version",
-    "start": "node test.js"
+    "check-electron": "electron --version"
   },
   "dependencies": {
-    "electron": "^39.2.6",
+    "is-odd": "^3.0.1",
     "@types/node": "^24.10.1",
     "lodash": "^4.17.21",
-    "is-odd": "^3.0.1",
-    "left-pad": "^1.3.0"
+    "electron": "^39.2.6",
+    "left-pad": "^1.3.0",
+    "express": "^5.2.1"
   }
 }

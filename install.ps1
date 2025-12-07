@@ -1,42 +1,72 @@
-$ErrorActionPreference = 'Stop'
+# Crabby Package Manager Installer
+# Works on Windows with PowerShell
 
-if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) {
-    Write-Error "Error: 'cargo' is not installed. Please install Rust from https://rustup.rs/ first."
+Write-Host "🦀 Installing Crabby Package Manager..." -ForegroundColor Cyan
+Write-Host ""
+
+# Check if Rust is installed
+$rustInstalled = Get-Command cargo -ErrorAction SilentlyContinue
+if (-not $rustInstalled) {
+    Write-Host "❌ Rust is not installed!" -ForegroundColor Red
+    Write-Host "📥 Please install Rust from: https://rustup.rs/" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "Or run this command in PowerShell:" -ForegroundColor Yellow
+    Write-Host "winget install Rustlang.Rustup" -ForegroundColor White
+    exit 1
 }
 
-Write-Host "Building Crabby from source..."
+Write-Host "✅ Rust found: $(rustc --version)" -ForegroundColor Green
+Write-Host ""
+
+# Build Crabby
+Write-Host "🔨 Building Crabby..." -ForegroundColor Yellow
 cargo build --release
 
-$InstallDir = "$env:LOCALAPPDATA\Programs\crabby"
-$SourceExe = "target\release\crabby.exe"
-
-if (-not (Test-Path $SourceExe)) {
-    Write-Error "Error: Build failed. $SourceExe not found."
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "❌ Build failed!" -ForegroundColor Red
+    exit 1
 }
 
-Write-Host "Installing to $InstallDir..."
-if (Test-Path $InstallDir) {
-    Remove-Item -Path $InstallDir -Recurse -Force
-}
-New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
+Write-Host "✅ Build successful!" -ForegroundColor Green
+Write-Host ""
 
-Copy-Item -Path $SourceExe -Destination $InstallDir -Force
+# Determine install location
+$installDir = "$env:USERPROFILE\.crabby\bin"
+New-Item -ItemType Directory -Force -Path $installDir | Out-Null
 
-$BinPath = "$InstallDir"
-$ExePath = Join-Path $BinPath "crabby.exe"
+# Copy binary
+Write-Host "📦 Installing to $installDir..." -ForegroundColor Yellow
+Copy-Item "target\release\crabby.exe" "$installDir\" -Force
 
-if (-not (Test-Path $ExePath)) {
-    Write-Error "Error: crabby.exe not found in $InstallDir"
-}
+Write-Host "✅ Crabby installed!" -ForegroundColor Green
+Write-Host ""
 
-# Add to PATH
-$UserPath = [Environment]::GetEnvironmentVariable("Path", "User")
-if ($UserPath -notlike "*$BinPath*") {
-    Write-Host "Adding $BinPath to User PATH..."
-    [Environment]::SetEnvironmentVariable("Path", "$UserPath;$BinPath", "User")
-    Write-Host "Path updated. You may need to restart your terminal."
+# Check if already in PATH
+$currentPath = [Environment]::GetEnvironmentVariable("Path", "User")
+if ($currentPath -like "*$installDir*") {
+    Write-Host "✅ $installDir is already in PATH" -ForegroundColor Green
 } else {
-    Write-Host "$BinPath is already in PATH."
+    Write-Host "⚠️  Adding Crabby to your PATH..." -ForegroundColor Yellow
+    
+    # Add to user PATH
+    $newPath = "$installDir;$currentPath"
+    [Environment]::SetEnvironmentVariable("Path", $newPath, "User")
+    
+    Write-Host "✅ Added to PATH! Please restart your terminal." -ForegroundColor Green
 }
 
-Write-Host "Crabby installed successfully!"
+Write-Host ""
+Write-Host "🎉 Installation complete!" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "📝 Key Features:" -ForegroundColor White
+Write-Host "  ✅ Standalone - No Node.js required!" -ForegroundColor Green
+Write-Host "  ✅ Fast TypeScript execution with tsx" -ForegroundColor Green
+Write-Host "  ✅ Full npm ecosystem support" -ForegroundColor Green
+Write-Host "  ✅ Global cache for faster installs" -ForegroundColor Green
+Write-Host ""
+Write-Host "🚀 Get started:" -ForegroundColor White
+Write-Host "  crabby init          # Initialize a new project" -ForegroundColor Cyan
+Write-Host "  crabby install react # Install packages" -ForegroundColor Cyan
+Write-Host "  crabby run app.ts    # Run TypeScript files" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "📚 Learn more: https://github.com/AqwozTheDeveloper/crabby" -ForegroundColor White

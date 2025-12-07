@@ -2,6 +2,7 @@ mod manifest;
 mod package_utils;
 mod runner;
 mod config;
+mod node_runtime;
 
 use clap::{Parser, Subcommand};
 use console::style;
@@ -64,20 +65,24 @@ fn main() -> Result<()> {
             println!("{}", style("Created package.json").green());
         }
         Commands::Cook { script, ts, js } => {
+            // Get Node.js path (system or downloaded)
+            let node_path = node_runtime::get_node_path()?;
+            let node_str = node_path.to_string_lossy();
+            
             if let Some(ts_file) = ts {
                 let cmd = format!("npx -y tsx {}", ts_file);
-                runner::run_script(&cmd, None)?;
+                runner::run_script_with_node(&cmd, None, &node_str)?;
             } else if let Some(js_file) = js {
-                let cmd = format!("node {}", js_file);
+                let cmd = format!("{} {}", node_str, js_file);
                 runner::run_script(&cmd, None)?;
             } else if let Some(script_name) = script {
                 let path = std::path::Path::new(&script_name);
                 if path.exists() && (script_name.ends_with(".js") || script_name.ends_with(".ts")) {
                     if script_name.ends_with(".ts") {
                         let cmd = format!("npx -y tsx {}", script_name);
-                        runner::run_script(&cmd, None)?;
+                        runner::run_script_with_node(&cmd, None, &node_str)?;
                     } else {
-                        let cmd = format!("node {}", script_name);
+                        let cmd = format!("{} {}", node_str, script_name);
                         runner::run_script(&cmd, None)?;
                     }
                 } else {
