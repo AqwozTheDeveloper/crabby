@@ -110,6 +110,51 @@ async fn main() -> Result<()> {
                 std::fs::write(config_path, serde_json::to_string_pretty(&default_config)?)?;
                 println!("{}", style("Created crabby.config.json").green());
             }
+            
+            // Ask for project type
+            use std::io::{self, Write};
+            print!("\n{} TypeScript or JavaScript? (ts/js) [default: ts]: ", style("❓").bold().yellow());
+            io::stdout().flush()?;
+            
+            let mut input = String::new();
+            io::stdin().read_line(&mut input)?;
+            let project_type = input.trim().to_lowercase();
+            let is_typescript = project_type.is_empty() || project_type == "ts" || project_type == "typescript";
+            
+            // Create starter file
+            if is_typescript {
+                let ts_content = r#"// Welcome to your Crabby TypeScript project!
+
+console.log("Hello from TypeScript! 🦀");
+
+// Example function
+function greet(name: string): string {
+    return `Hello, ${name}!`;
+}
+
+console.log(greet("Crabby"));
+"#;
+                std::fs::write("index.ts", ts_content)?;
+                println!("{} Created index.ts", style("✅").green());
+                println!("{} Run with: crabby run index.ts", style("💡").dim());
+            } else {
+                let js_content = r#"// Welcome to your Crabby JavaScript project!
+
+console.log("Hello from JavaScript! 🦀");
+
+// Example function
+function greet(name) {
+    return `Hello, ${name}!`;
+}
+
+console.log(greet("Crabby"));
+"#;
+                std::fs::write("index.js", js_content)?;
+                println!("{} Created index.js", style("✅").green());
+                println!("{} Run with: crabby run index.js", style("💡").dim());
+            }
+            
+            println!("\n{} Project initialized successfully!", style("🎉").bold().green());
         }
         Commands::Cook { script, ts, js } => {
             let node_path = node_runtime::get_node_path()?;
