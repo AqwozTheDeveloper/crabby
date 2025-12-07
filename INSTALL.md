@@ -88,6 +88,27 @@ rm -rf ~/.crabby
 - Crabby will retry on next run
 - Or install Node.js manually from nodejs.org
 
+## Uninstall
+
+### Windows
+```powershell
+cd crabby
+.\uninstall.ps1
+```
+
+### macOS / Linux
+```bash
+cd crabby
+chmod +x uninstall.sh
+./uninstall.sh
+```
+
+This will remove:
+- Crabby binary from `~/.crabby/bin/`
+- Global cache from `~/.crabby/cache/`
+- Downloaded Node.js runtime from `~/.crabby/runtime/`
+- PATH entry (Windows: automatic, Unix: manual instructions)
+
 ## Support
 
 - 📚 Documentation: [GitHub Wiki](https://github.com/AqwozTheDeveloper/crabby/wiki)

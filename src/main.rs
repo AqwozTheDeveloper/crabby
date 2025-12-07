@@ -4,6 +4,7 @@ mod runner;
 mod config;
 mod node_runtime;
 mod update;
+mod safety;
 
 use clap::{Parser, Subcommand};
 use console::style;
@@ -55,6 +56,9 @@ enum Commands {
     Remove {
         /// The name of the package to remove
         package: String,
+        /// Skip confirmation prompt
+        #[arg(long)]
+        force: bool,
     },
     /// List all installed packages
     #[command(alias = "ls")]
@@ -76,6 +80,12 @@ enum Commands {
         /// Also clean global cache
         #[arg(long)]
         cache: bool,
+        /// Skip confirmation prompt
+        #[arg(long)]
+        force: bool,
+        /// Show what would be removed without actually removing
+        #[arg(long)]
+        dry_run: bool,
     },
 }
 
@@ -156,14 +166,37 @@ async fn main() -> Result<()> {
                 install_all_dependencies(&config.registry).await?;
             }
         }
-        Commands::Remove { package } => {
+        Commands::Remove { package, force } => {
             println!("{} {}", style("🗑️").bold().red(), style(format!("Removing {}...", package)).bold());
             
             let mut pkg_json = manifest::PackageJson::load()?;
-            if !pkg_json.dependencies.contains_key(package) {
+            if !pkg_json.dependencies.contains_key(package) && !pkg_json.dev_dependencies.contains_key(package) {
                 println!("{} Package '{}' not found in dependencies", style("❌").red(), package);
                 return Ok(());
             }
+            
+            // Ask for confirmation unless --force is used
+            if !*force {
+                print!("\n{} ", style("Continue? (y/n):").bold());
+                use std::io::{self, Write};
+                io::stdout().flush()?;
+                
+                let mut input = String::new();
+                io::stdin().read_line(&mut input)?;
+                
+                if !input.trim().eq_ignore_ascii_case("y") {
+                    println!("{} Cancelled", style("❌").red());
+                    return Ok(());
+                }
+            }
+            
+            // Create backup of package.json
+            let pkg_json_path = std::path::Path::new("package.json");
+            if pkg_json_path.exists() {
+                let backup_path = safety::create_backup(pkg_json_path)?;
+                println!("{} Created backup: {}", style("💾").dim(), backup_path.display());
+            }
+            
             pkg_json.remove_dependency(package);
             pkg_json.save()?;
             
@@ -237,7 +270,12 @@ async fn main() -> Result<()> {
         Commands::Info { package } => {
             update::get_package_info(&package, &config.registry).await?;
         }
-        Commands::Clean { cache } => {
+        Commands::Clean { cache, force, dry_run } => {
+            if *dry_run {
+                println!("{} DRY RUN - No files will be removed", style("ℹ️").bold().blue());
+                println!("");
+            }
+            
             println!("{} This will remove:", style("⚠️").bold().yellow());
             println!("  • node_modules/");
             println!("  • crabby.lock");
@@ -245,15 +283,22 @@ async fn main() -> Result<()> {
                 println!("  • Global cache");
             }
             
-            print!("\n{} ", style("Continue? (y/n):").bold());
-            use std::io::{self, Write};
-            io::stdout().flush()?;
+            if !*force && !*dry_run {
+                print!("\n{} ", style("Continue? (y/n):").bold());
+                use std::io::{self, Write};
+                io::stdout().flush()?;
+                
+                let mut input = String::new();
+                io::stdin().read_line(&mut input)?;
+                
+                if !input.trim().eq_ignore_ascii_case("y") {
+                    println!("{} Cancelled", style("❌").red());
+                    return Ok(());
+                }
+            }
             
-            let mut input = String::new();
-            io::stdin().read_line(&mut input)?;
-            
-            if !input.trim().eq_ignore_ascii_case("y") {
-                println!("{} Cancelled", style("❌").red());
+            if *dry_run {
+                println!("\n{} Dry run complete - no changes made", style("✅").green());
                 return Ok(());
             }
             
