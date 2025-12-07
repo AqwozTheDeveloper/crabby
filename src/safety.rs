@@ -1,10 +1,10 @@
 use anyhow::{Context, Result};
-use sha2::{Sha256, Digest};
+use sha1::{Sha1, Digest};
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 
-/// Verify file integrity using SHA-256 checksum
+/// Verify file integrity using SHA-1 checksum (npm registry format)
 pub fn verify_checksum(file_path: &Path, expected_checksum: Option<&str>) -> Result<bool> {
     if expected_checksum.is_none() {
         // No checksum provided, skip verification
@@ -16,7 +16,7 @@ pub fn verify_checksum(file_path: &Path, expected_checksum: Option<&str>) -> Res
     let mut file = File::open(file_path)
         .context("Failed to open file for checksum verification")?;
     
-    let mut hasher = Sha256::new();
+    let mut hasher = Sha1::new();
     let mut buffer = [0; 8192];
     
     loop {
@@ -33,12 +33,12 @@ pub fn verify_checksum(file_path: &Path, expected_checksum: Option<&str>) -> Res
     Ok(actual == expected)
 }
 
-/// Calculate SHA-256 checksum of a file
+/// Calculate SHA-1 checksum of a file (npm registry format)
 pub fn calculate_checksum(file_path: &Path) -> Result<String> {
     let mut file = File::open(file_path)
         .context("Failed to open file for checksum calculation")?;
     
-    let mut hasher = Sha256::new();
+    let mut hasher = Sha1::new();
     let mut buffer = [0; 8192];
     
     loop {

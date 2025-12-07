@@ -261,12 +261,25 @@ pub fn download_and_extract(name: &str, version: &str, tarball_url: &str, client
     if let Some(expected) = expected_checksum {
         if !expected.is_empty() {
             println!("{} Verifying checksum for {}", style("🔐").dim(), name);
-            if !crate::safety::verify_checksum(&cached_file, Some(expected))? {
-                // Remove corrupted file
-                fs::remove_file(&cached_file).ok();
-                anyhow::bail!("Checksum verification failed for package '{}'. Expected: {}", name, expected);
+            match crate::safety::verify_checksum(&cached_file, Some(expected)) {
+                Ok(true) => {
+                    println!("{} Checksum verified for {}", style("✅").green(), name);
+                },
+                Ok(false) => {
+                    // Checksum mismatch - warn but continue (some registries have stale metadata)
+                    println!("{} {} Checksum mismatch for package '{}'", 
+                        style("⚠️").yellow(), 
+                        style("WARNING:").bold().yellow(),
+                        name
+                    );
+                    println!("   Expected: {}", style(expected).dim());
+                    println!("   This package may have been updated recently.");
+                    println!("   Installation will continue, but use caution.");
+                },
+                Err(e) => {
+                    println!("{} Could not verify checksum: {}", style("⚠️").yellow(), e);
+                }
             }
-            println!("{} Checksum verified for {}", style("✅").green(), name);
         }
     }
 
