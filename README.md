@@ -36,7 +36,7 @@
 To build Crabby from source, ensure you have [Rust installed](https://rustup.rs/).
 
 ```bash
-git clone https://github.com/yourusername/crabby.git
+git clone https://github.com/AqwozTheDeveloper/crabby.git
 cd crabby
 cargo build --release
 ```
