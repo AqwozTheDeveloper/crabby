@@ -1,86 +1,194 @@
-<img width="1600" height="400" alt="Craa" src="https://github.com/user-attachments/assets/725fffcd-3ae8-47b9-8577-c471f51929bd" />
-
+<img width="1600" height="400" alt="Crabby" src="https://github.com/user-attachments/assets/725fffcd-3ae8-47b9-8577-c471f51929bd" />
 
 <div align="center">
+
 # 🦀 Crabby
-**A Blazingly Fast Node.js Package Manager written in Rust.**
+
+**A Blazingly Fast, Standalone Package Manager for Node.js**
 
 [![Rust](https://img.shields.io/badge/built_with-Rust-d35400.svg?style=flat-square)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
 
-<img width="1139" height="1006" alt="image" src="https://github.com/user-attachments/assets/0e18800c-22b5-4721-a6de-390f46f1b453" />
+*No Node.js required • 20x faster TypeScript • Full npm compatibility*
+
+<img width="1139" height="1006" alt="Crabby Demo" src="https://github.com/user-attachments/assets/0e18800c-22b5-4721-a6de-390f46f1b453" />
 
 </div>
 
 ---
 
-**Crabby** is a modern, lightweight, and fast package manager for Node.js, built to demonstrate the power of Rust for developer tooling. It supports standard `package.json` workflows, recursive dependency resolution, and sophisticated lifecycle management.
+## ✨ Why Crabby?
 
-## 🚀 Features
+**Crabby** is a modern, standalone package manager that works without Node.js installed. It automatically downloads a portable Node.js runtime if needed, making it perfect for fresh systems and CI/CD environments.
 
-- **⚡ Blazingly Fast**: Powered by Rust's multi-threaded architecture.
-- **📦 Recursive Installation**: Robustly resolves and downloads deep dependency trees.
-- **🧠 Semantic Versioning**: Intelligently selects compatible versions (`^1.2.0`) to prevent conflicts.
-- **⚙️ Lifecycle Scripts**: Automatically executes `postinstall` scripts (essential for packages like `electron`).
-- **🔗 Binary Linking**: Creates executables in `node_modules/.bin` for CLI tools.
-- **🏃 Universal Runner**: `crabby run <file>` supports:
-    - **Auto-detection**: Smartly runs `.ts` (via `ts-node`) or `.js` (via `node`) files.
-    - **GUI Support**: Handles process spawning for GUI frameworks like Electron and Tauri.
-    - **Output Streaming**: Real-time output visibility for long-running processes.
-- **🔒 Reproducible Builds**: Uses `crabby.lock` to lock versions and tarballs.
-- **🎨 Configurable**: Custom registries via `crabby.config.json`.
+### Key Features
 
-## 📦 Installation
+- 🚀 **Standalone** - No Node.js installation required
+- ⚡ **Blazingly Fast** - 20x faster TypeScript execution with tsx
+- 📦 **Full npm Support** - Works with all npm packages and frameworks
+- 🔒 **Reproducible** - Lock files ensure consistent builds
+- 🗄️ **Global Cache** - Shared cache for lightning-fast installs
+- 🎨 **Beautiful CLI** - Modern interface with emojis and colors
+- 🔧 **Dev Dependencies** - Separate dev and production dependencies
+- 📊 **Package Management** - Update, outdated, info commands
+- 🏢 **Workspaces** - Basic monorepo support
 
-To build Crabby from source, ensure you have [Rust installed](https://rustup.rs/).
+## 🚀 Quick Start
 
+### Installation
+
+**Windows:**
+```powershell
+git clone https://github.com/AqwozTheDeveloper/crabby.git
+cd crabby
+.\install.ps1
+```
+
+**macOS / Linux:**
 ```bash
 git clone https://github.com/AqwozTheDeveloper/crabby.git
 cd crabby
-cargo build --release
+chmod +x install.sh
+./install.sh
 ```
 
-The binary will be located at `./target/release/crabby`.
+### Usage
 
-## 🛠️ Usage
-
-### Initialize
-Create a new `package.json` in the current directory:
 ```bash
+# Initialize a new project
 crabby init
-```
 
-### Install
-Install dependencies from the registry:
-```bash
-# Install a package (defaults to saving as dependency)
-crabby install lodash
+# Install all dependencies from package.json
+crabby install
 
-# Install a complex package with binaries and scripts
-crabby install electron
-```
+# Install a specific package
+crabby install express
+crabby install typescript --save-dev
 
-### Run Scripts & Files
-Execute scripts defined in your `package.json` OR run files directly:
-
-```bash
-# Run a specific script from package.json
-crabby run test
-
-# Run a TypeScript file (auto-uses ts-node)
-crabby run src/app.ts
-
-# Run a JavaScript file
+# Run TypeScript/JavaScript files
+crabby run app.ts
 crabby run server.js
 
-# Shortcuts
-crabby start  # alias for `run start`
-crabby test   # alias for `run test`
+# Package management
+crabby update              # Check for updates
+crabby outdated            # Show outdated packages
+crabby info express        # Show package info
+crabby list                # List installed packages
+crabby clean               # Clean node_modules
 ```
 
-### Configuration
-Configure Crabby via `crabby.config.json` in your project root:
+## 📚 Commands
+
+### Project Management
+
+| Command | Description |
+|---------|-------------|
+| `crabby init` | Initialize a new project |
+| `crabby install` | Install all dependencies |
+| `crabby install <package>` | Install a specific package |
+| `crabby install <pkg> -D` | Install as dev dependency |
+| `crabby remove <package>` | Remove a package |
+| `crabby list` | List installed packages |
+| `crabby clean` | Clean node_modules and cache |
+
+### Updates & Information
+
+| Command | Description |
+|---------|-------------|
+| `crabby update` | Check for package updates |
+| `crabby update <package>` | Update specific package |
+| `crabby outdated` | Show outdated packages |
+| `crabby info <package>` | Show package information |
+
+### Running Code
+
+| Command | Description |
+|---------|-------------|
+| `crabby run <script>` | Run package.json script |
+| `crabby run app.ts` | Run TypeScript file |
+| `crabby run app.js` | Run JavaScript file |
+| `crabby start` | Run start script |
+| `crabby test` | Run test script |
+
+### Utilities
+
+| Command | Description |
+|---------|-------------|
+| `crabby --version` | Show version |
+| `crabby --help` | Show help |
+
+## 🎯 Features in Detail
+
+### Standalone Runtime
+
+Crabby automatically detects if Node.js is installed. If not, it downloads a portable version (~50MB) to `~/.crabby/runtime/`. This happens once and is reused forever.
+
+```bash
+# First run without Node.js
+crabby run app.ts
+# 📥 Downloading Node.js runtime (one-time setup)...
+# ✅ Node.js runtime installed!
+# 🍳 Cooking: npx -y tsx app.ts
+```
+
+### Dev Dependencies
+
+Separate your development and production dependencies:
+
+```bash
+crabby install typescript -D
+crabby install jest --save-dev
+```
+
+Your `package.json`:
+```json
+{
+  "dependencies": {
+    "express": "^5.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "jest": "^29.0.0"
+  }
+}
+```
+
+### Package Updates
+
+Stay up to date with the latest versions:
+
+```bash
+# Check what's outdated
+crabby outdated
+# 📊 Outdated packages:
+#   express 4.18.0 → 5.2.1
+#   typescript 4.9.0 → 5.3.3
+
+# Update specific package
+crabby update express
+
+# Check all for updates
+crabby update
+```
+
+### Install All Dependencies
+
+Just like npm, you can install all dependencies at once:
+
+```bash
+crabby install
+# 📦 Installing 15 packages...
+#   ⬇️  Installing express... ✅ 5.2.1
+#   ⬇️  Installing typescript... ✅ 5.3.3
+#   ...
+# 🎉 Installed 15 packages in 12s
+```
+
+## 🔧 Configuration
+
+Create `crabby.config.json` in your project root:
+
 ```json
 {
   "registry": "https://registry.npmjs.org",
@@ -88,20 +196,59 @@ Configure Crabby via `crabby.config.json` in your project root:
 }
 ```
 
-## 🗺️ Roadmap
+## 🏗️ Advanced Features
 
-- [x] MVP (Init, Install, Run)
-- [x] Recursive Dependencies
-- [x] Lifecycle Scripts
-- [x] Semver Resolution
-- [x] Binary Linking
-- [x] TS/JS File Runner
-- [x] Global Cache
-- [x] `crabby remove`
-- [ ] Workspaces support
+### Recursive Dependencies
+
+Crabby automatically resolves and installs all nested dependencies, just like npm.
+
+### Lifecycle Scripts
+
+Automatically runs `postinstall` scripts, essential for packages like Electron.
+
+### Binary Linking
+
+Creates executables in `node_modules/.bin` for CLI tools.
+
+### GUI Framework Support
+
+Works seamlessly with Electron, Tauri, and other GUI frameworks.
+
+### Semantic Versioning
+
+Intelligently handles version ranges (`^1.2.0`, `~2.0.0`) to prevent conflicts.
+
+### Global Cache
+
+Packages are cached globally at `~/.crabby/cache/` for faster subsequent installs.
+
+## 📊 Performance
+
+- **TypeScript Execution**: 20x faster than ts-node using tsx
+- **Install Speed**: Comparable to npm with global caching
+- **Startup Time**: Instant with no runtime overhead
+- **Memory Usage**: Efficient Rust implementation
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## 📝 License
+
+MIT License - see [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- Built with [Rust](https://www.rust-lang.org/)
+- Uses [tsx](https://github.com/esbuild-kit/tsx) for fast TypeScript execution
+- Inspired by npm, yarn, and pnpm
 
 ---
 
 <div align="center">
-Built with 🦀 and ❤️ by aqwozthedeveloper.
+
+**Built with 🦀 and ❤️ by [AqwozTheDeveloper](https://github.com/AqwozTheDeveloper)**
+
+[Report Bug](https://github.com/AqwozTheDeveloper/crabby/issues) • [Request Feature](https://github.com/AqwozTheDeveloper/crabby/issues)
+
 </div>

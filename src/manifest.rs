@@ -12,6 +12,10 @@ pub struct PackageJson {
     pub scripts: HashMap<String, String>,
     #[serde(default)]
     pub dependencies: HashMap<String, String>,
+    #[serde(default, rename = "devDependencies")]
+    pub dev_dependencies: HashMap<String, String>,
+    #[serde(default)]
+    pub workspaces: Option<Vec<String>>,
 }
 
 impl PackageJson {
@@ -34,8 +38,18 @@ impl PackageJson {
         self.dependencies.insert(name, version);
     }
     
+    pub fn add_dev_dependency(&mut self, name: String, version: String) {
+        self.dev_dependencies.insert(name, version);
+    }
+    
     pub fn remove_dependency(&mut self, name: &str) -> Option<String> {
         self.dependencies.remove(name)
+    }
+    
+    pub fn get_all_dependencies(&self) -> HashMap<String, String> {
+        let mut all_deps = self.dependencies.clone();
+        all_deps.extend(self.dev_dependencies.clone());
+        all_deps
     }
 }
 

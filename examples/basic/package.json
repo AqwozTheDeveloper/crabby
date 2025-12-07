@@ -1,0 +1,15 @@
+{
+  "name": "basic-example",
+  "version": "1.0.0",
+  "description": "Basic Crabby example",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "tsx index.ts"
+  },
+  "dependencies": {
+    "chalk": "^5.0.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0"
+  }
+}

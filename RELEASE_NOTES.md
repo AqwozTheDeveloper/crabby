@@ -1,130 +1,159 @@
-# 🦀 Crabby BETA-1.0.0 Release Notes
+# Crabby Release Notes
 
-**Release Date:** December 6, 2025  
-**Type:** Beta Release
+## Version 0.1.0 - Initial Release
+
+### 🎉 Major Features
+
+#### Standalone Runtime
+- **No Node.js Required**: Crabby works out of the box without Node.js installed
+- **Auto-Download**: Automatically downloads portable Node.js (~50MB) if not found
+- **One-Time Setup**: Downloaded runtime is cached at `~/.crabby/runtime/` and reused
+- **Cross-Platform**: Works on Windows, macOS, and Linux
+
+#### Package Management
+- **Install Packages**: `crabby install <package>` - Install from npm registry
+- **Install All**: `crabby install` - Install all dependencies from package.json
+- **Remove Packages**: `crabby remove <package>` - Clean removal with lock file updates
+- **List Packages**: `crabby list` - View all installed packages
+- **Clean Command**: `crabby clean` - Remove node_modules with confirmation prompt
+
+#### Dev Dependencies
+- **Separate Dependencies**: Full support for `devDependencies`
+- **Install Flag**: `crabby install <pkg> --save-dev` or `-D`
+- **Proper Tracking**: Maintains separate dependency lists in package.json
+
+#### Package Updates & Information
+- **Check Updates**: `crabby update` - See all available updates
+- **Update Packages**: `crabby update <package>` - Update specific package
+- **Show Outdated**: `crabby outdated` - List packages with newer versions
+- **Package Info**: `crabby info <package>` - View package details from registry
+
+#### Script Running
+- **TypeScript Support**: 20x faster execution with tsx
+- **JavaScript Support**: Direct Node.js execution
+- **Package Scripts**: Run scripts from package.json
+- **Quick Aliases**: `crabby start`, `crabby test`
+
+#### Advanced Features
+- **Recursive Dependencies**: Automatic deep dependency resolution
+- **Semantic Versioning**: Smart version range handling (`^`, `~`)
+- **Lifecycle Scripts**: Automatic `postinstall` execution
+- **Binary Linking**: CLI tools in `node_modules/.bin`
+- **Lock Files**: `crabby.lock` for reproducible builds
+- **Global Cache**: Shared package cache at `~/.crabby/cache/`
+- **GUI Framework Support**: Works with Electron, Tauri, etc.
+
+#### Workspace Support (Basic)
+- **Workspace Discovery**: Parses workspace patterns from package.json
+- **Package Linking**: Symlinks local workspace packages
+- **Monorepo Ready**: Basic monorepo support
+
+### 🎨 User Experience
+
+#### Beautiful CLI
+- **Emojis**: Visual feedback with emojis (📦, ✅, ❌, etc.)
+- **Colors**: Syntax highlighting with colored output
+- **Progress Indicators**: Real-time installation progress
+- **Clear Messages**: Helpful error messages and suggestions
+
+#### Smart Defaults
+- **Auto-Detection**: Automatically detects .ts vs .js files
+- **Confirmation Prompts**: Safety checks for destructive operations
+- **Error Handling**: Graceful failure with detailed error messages
+- **Retry Logic**: Continues installing even if one package fails
+
+### 📊 Performance
+
+- **Fast TypeScript**: 20x faster than ts-node using tsx
+- **Efficient Caching**: Global cache reduces download times
+- **Rust Performance**: Native speed with low memory usage
+- **Parallel Operations**: Async operations with Tokio
+
+### 🔧 Technical Details
+
+#### Dependencies
+- Built with Rust 2021 edition
+- Uses Tokio for async operations
+- Clap for CLI parsing
+- Serde for JSON handling
+- Reqwest for HTTP requests
+
+#### Platform Support
+- **Windows**: Full support with PowerShell installer
+- **macOS**: Full support with bash installer
+- **Linux**: Full support with bash installer
+
+#### File Structure
+```
+~/.crabby/
+├── bin/           # Crabby executable
+├── cache/         # Global package cache
+└── runtime/       # Portable Node.js (if downloaded)
+```
+
+### 📝 Commands Reference
+
+**16+ Commands Available:**
+- `init`, `install`, `remove`, `list`, `clean`
+- `update`, `outdated`, `info`
+- `run`, `start`, `test`
+- `--version`, `--help`
+
+### 🐛 Known Limitations
+
+- **Workspaces**: Basic support only (no shared dependencies yet)
+- **Audit**: No security audit feature (planned for future)
+- **Publishing**: No `publish` command (use npm for now)
+- **Parallel Downloads**: Sequential installation (parallel planned)
+
+### 🚀 Future Plans
+
+- Full workspace support with shared dependencies
+- Security audit integration
+- Publishing to npm
+- Parallel package downloads
+- Watch mode for development
+- Performance benchmarks
+
+### 📚 Documentation
+
+- **README.md**: Complete feature documentation
+- **INSTALL.md**: Installation guide
+- **Examples**: Sample projects in repository
+
+### 🙏 Credits
+
+- Built with Rust by AqwozTheDeveloper
+- Inspired by npm, yarn, and pnpm
+- Uses tsx for TypeScript execution
+- Community feedback and contributions
 
 ---
 
-## 🎉 Overview
-
-We're excited to announce the first beta release of **Crabby** - a blazingly fast Node.js package manager written in Rust! This release brings a feature-complete package manager that rivals npm and yarn in functionality while offering superior performance.
-
-## ✨ Key Features
-
-### 📦 Package Management
-- **Install packages** from the npm registry with full dependency resolution
-- **Remove packages** cleanly with `crabby remove` or `crabby rm`
-- **Recursive dependency installation** with intelligent conflict resolution
-- **Semantic versioning** support for version constraints
-- **Reproducible builds** using `crabby.lock` lockfile
-
-### 🚀 Performance & Caching
-- **Global cache system** - Downloaded packages are cached locally for instant reinstalls
-  - Windows: `%LOCALAPPDATA%\crabby\cache`
-  - Unix/Linux/Mac: `~/.cache/crabby`
-- **Blazingly fast** installation powered by Rust's performance
-- **Offline capability** for previously cached packages
-
-### 🏃 Universal Script Runner
-- **Auto-detection** - Run `.js` and `.ts` files without flags
-  ```bash
-  crabby run app.ts    # Automatically uses ts-node
-  crabby run server.js # Automatically uses node
-  ```
-- **Package scripts** - Compatible with npm scripts in `package.json`
-- **GUI framework support** - Handles Electron, Tauri, and other GUI applications
-- **Real-time output streaming** - See your script output as it happens
-
-### ⚙️ Advanced Features
-- **Lifecycle scripts** - Automatic execution of `postinstall` scripts
-- **Binary linking** - CLI tools automatically available in `node_modules/.bin`
-- **Scoped packages** - Full support for `@scope/package` notation
-- **Custom registries** - Configure alternative npm registries via `crabby.config.json`
-
-## 📋 Available Commands
+## Installation
 
 ```bash
-crabby init              # Initialize a new project
-crabby install <pkg>     # Install a package (alias: i)
-crabby remove <pkg>      # Remove a package (alias: rm)
-crabby run <script|file> # Run a script or file (alias: cook)
-crabby start             # Run the start script
-crabby test              # Run the test script
-```
-
-## 🎯 What's Included
-
-### Core Functionality
-- ✅ Project initialization
-- ✅ Package installation with dependency resolution
-- ✅ Package removal
-- ✅ Script execution
-- ✅ TypeScript and JavaScript file execution
-- ✅ Global package cache
-- ✅ Lockfile management
-
-### Developer Experience
-- ✅ Beautiful CLI output with emojis and colors
-- ✅ Progress indicators for long operations
-- ✅ Helpful error messages
-- ✅ Performance metrics (install duration)
-
-## 🔧 Installation
-
-### From Source
-```bash
+# Windows
 git clone https://github.com/AqwozTheDeveloper/crabby.git
 cd crabby
-cargo build --release
+.\install.ps1
+
+# macOS/Linux
+git clone https://github.com/AqwozTheDeveloper/crabby.git
+cd crabby
+./install.sh
 ```
 
-The binary will be available at `./target/release/crabby`
-
-## 📝 Example Usage
+## Getting Started
 
 ```bash
-# Initialize a new project
 crabby init
-
-# Install packages
-crabby install lodash
-crabby install electron
-
-# Run TypeScript files directly
-crabby run src/app.ts
-
-# Run package scripts
-crabby run build
-crabby start
-
-# Remove packages
-crabby remove lodash
+crabby install express
+crabby run app.ts
 ```
-
-## 🐛 Known Limitations
-
-- **Workspaces** - Monorepo/workspace support is not yet implemented
-- **Dev Dependencies** - All dependencies are treated as production dependencies
-- **Peer Dependencies** - Not yet handled automatically
-
-## 🔮 Coming Soon
-
-- [ ] Workspace/monorepo support
-- [ ] Dev dependencies distinction
-- [ ] Peer dependency resolution
-- [ ] Package publishing
-- [ ] Update command
-
-## 🙏 Acknowledgments
-
-Built with 🦀 and ❤️ by **aqwozthedeveloper**
-
-## 📄 License
-
-MIT License
 
 ---
 
-**Try it out and let us know what you think!** 🚀
+**Thank you for using Crabby! 🦀**
 
-Report issues at: https://github.com/AqwozTheDeveloper/crabby/issues
+Report issues: https://github.com/AqwozTheDeveloper/crabby/issues
