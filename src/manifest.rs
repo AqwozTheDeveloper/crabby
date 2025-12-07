@@ -23,7 +23,13 @@ impl PackageJson {
         if !Path::new("package.json").exists() {
            return Ok(Self::default());
         }
-        let content = fs::read_to_string("package.json")?;
+        let mut content = fs::read_to_string("package.json")?;
+        
+        // Strip UTF-8 BOM if present (fixes PowerShell Out-File issue)
+        if content.starts_with('\u{FEFF}') {
+            content = content.trim_start_matches('\u{FEFF}').to_string();
+        }
+        
         let pkg: PackageJson = serde_json::from_str(&content)?;
         Ok(pkg)
     }

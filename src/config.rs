@@ -43,6 +43,10 @@ impl CrabbyConfig {
     }
 }
 
+pub fn load_config() -> Result<CrabbyConfig> {
+    CrabbyConfig::load()
+}
+
 pub fn get_cache_dir() -> Result<std::path::PathBuf> {
     let cache_dir = if cfg!(target_os = "windows") {
         let local_app_data = std::env::var("LOCALAPPDATA")

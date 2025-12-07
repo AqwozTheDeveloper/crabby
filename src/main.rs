@@ -1,7 +1,7 @@
 mod manifest;
 mod package_utils;
 mod runner;
-mod config;
+pub mod config;
 mod node_runtime;
 mod update;
 mod safety;
@@ -9,6 +9,7 @@ mod safety;
 use clap::{Parser, Subcommand};
 use console::style;
 use anyhow::Result;
+use std::path::Path;
 
 #[derive(Parser)]
 #[command(name = "crabby")]
@@ -188,38 +189,55 @@ console.log(greet("Crabby"));
             run_package_script("test")?;
         }
         Commands::Install { package, save_dev } => {
-            if let Some(pkg_name) = package {
-                // Install single package
-                let start = std::time::Instant::now();
-                println!("{} {}", style("📦").bold().blue(), style(format!("Installing {}...", pkg_name)).bold());
+            let config = config::load_config()?;
+            let registry = config.registry;
 
-                let (version, tarball) = package_utils::install_package(pkg_name, &config.registry)?;
+            // Load lockfile if exists for optimizations
+            let mut lockfile = manifest::CrabbyLock::load().unwrap_or_default();
+            let lockfile_ref = if std::path::Path::new("crabby.lock").exists() {
+                Some(&lockfile)
+            } else {
+                None
+            };
+            
+            // Shared HTTP client
+            let client = reqwest::blocking::Client::new();
+            
+            let version_data = if let Some(pkg_name) = package {
+                // Install single package with immutable lockfile ref
+                let result = package_utils::install_package(pkg_name, &registry, &client, lockfile_ref)?;
                 
-                let mut pkg_json = manifest::PackageJson::load()?;
+                // Update package.json
+                let mut pkg = manifest::PackageJson::load()?;
                 if *save_dev {
-                    pkg_json.add_dev_dependency(pkg_name.clone(), format!("^{}", version));
+                    pkg.add_dev_dependency(pkg_name.clone(), format!("^{}", result.0));
                     println!("{} Saved to devDependencies", style("📝").dim());
                 } else {
-                    pkg_json.add_dependency(pkg_name.clone(), format!("^{}", version));
+                    pkg.add_dependency(pkg_name.clone(), format!("^{}", result.0));
                     println!("{} Saved to dependencies", style("📝").dim());
                 }
-                pkg_json.save()?;
-
-                let mut lockfile = manifest::CrabbyLock::load()?;
+                pkg.save()?;
+                
+                // Return result to update lockfile in new mutable borrow scope
+                Some((pkg_name.clone(), result.0, result.1))
+            } else {
+                None
+            };
+            
+            if let Some((pkg_name, version, tarball)) = version_data {
+                // Update lockfile (mutable borrow is safe here as immutable borrow is dropped)
                 lockfile.add_package(pkg_name.clone(), version.clone(), tarball);
                 lockfile.save()?;
 
-                let duration = start.elapsed();
                 println!(
-                    "{} Installed {} v{} in {}", 
+                    "{} Installed {} v{}", 
                     style("✅").bold().green(), 
                     style(pkg_name).bold().white(),
-                    style(version).bold().cyan(),
-                    style(humantime::format_duration(duration)).bold().magenta()
+                    style(version).bold().cyan()
                 );
-            } else {
-                // Install all dependencies from package.json
-                install_all_dependencies(&config.registry).await?;
+            } else if package.is_none() {
+                 // Install all packages from package.json
+                install_all_dependencies(&registry).await?;
             }
         }
         Commands::Remove { package, force } => {
@@ -285,7 +303,10 @@ console.log(greet("Crabby"));
                 println!("{} Updating {}...", style("📦").bold().blue(), pkg_name);
                 let (version, _tarball) = update::update_package(&pkg_name, &config.registry).await?;
                 
-                package_utils::install_package(&pkg_name, &config.registry)?;
+                // Create HTTP client and load lockfile for optimized installation
+                let client = reqwest::blocking::Client::new();
+                let lockfile = manifest::CrabbyLock::load().ok();
+                package_utils::install_package(&pkg_name, &config.registry, &client, lockfile.as_ref())?;
                 
                 let mut pkg_json = manifest::PackageJson::load()?;
                 pkg_json.add_dependency(pkg_name.clone(), format!("^{}", version));
@@ -407,6 +428,9 @@ fn run_package_script(script_name: &str) -> Result<()> {
 }
 
 async fn install_all_dependencies(registry: &str) -> Result<()> {
+    use futures::stream::StreamExt;
+    use std::sync::{Arc, Mutex};
+    
     let pkg_json = manifest::PackageJson::load()?;
     let all_deps = pkg_json.get_all_dependencies();
     
@@ -421,36 +445,100 @@ async fn install_all_dependencies(registry: &str) -> Result<()> {
     );
     
     let start = std::time::Instant::now();
+    
+    // Load or create lock file with thread-safe access
+    let lockfile = Arc::new(Mutex::new(manifest::CrabbyLock::load()?));
+    
+    // Constants for parallel execution
+    const MAX_CONCURRENT_DOWNLOADS: usize = 16;
+    
+    // Create a stream of install tasks
+    let registry_arc = Arc::new(registry.to_string());
+    
+    // Create shared HTTP client (cheap to clone, reuses connection pool)
+    let shared_client = Arc::new(reqwest::blocking::Client::new());
+    
+    let results = futures::stream::iter(all_deps)
+        .map(|(name, _version)| {
+            let registry = Arc::clone(&registry_arc);
+            let lockfile = Arc::clone(&lockfile);
+            let client = Arc::clone(&shared_client);
+            let name = name.clone();
+            
+            async move {
+                // Prepare copies for the thread
+                let name_for_task = name.clone();
+                let registry_for_task = Arc::clone(&registry);
+                let client_for_task = Arc::clone(&client);
+                
+                let result = tokio::task::spawn_blocking(move || {
+                    // Load lockfile snapshot for read access
+                    let lock_snapshot = if Path::new("crabby.lock").exists() {
+                        manifest::CrabbyLock::load().ok()
+                    } else {
+                        None
+                    };
+                    
+                    package_utils::install_package(&name_for_task, &registry_for_task, &client_for_task, lock_snapshot.as_ref())
+                }).await;
+                
+                match result {
+                    Ok(install_res) => {
+                        match install_res {
+                            Ok((ver, tarball)) => {
+                                println!("{} Installed {} {}", style("✅").green(), style(&name).cyan(), style(&ver).dim());
+                                // Thread-safe update of lockfile
+                                if let Ok(mut lock) = lockfile.lock() {
+                                    lock.add_package(name.clone(), ver, tarball);
+                                }
+                                Ok(name)
+                            },
+                            Err(e) => {
+                                println!("{} Failed {}: {}", style("❌").red(), style(&name).bold(), style(format!("{:?}", e)).dim());
+                                Err((name, e))
+                            }
+                        }
+                    },
+                    Err(join_err) => {
+                        println!("{} Task Error {}: {}", style("❌").red(), style(&name).bold(), style(join_err).dim());
+                        Err((name, anyhow::anyhow!("Task join error")))
+                    }
+                }
+            }
+        })
+        .buffer_unordered(MAX_CONCURRENT_DOWNLOADS)
+        .collect::<Vec<_>>()
+        .await;
+
+    // Process results
     let mut installed = 0;
     let mut failed = Vec::new();
     
-    // Install packages with progress
-    for (name, _version) in &all_deps {
-        print!("  {} Installing {}... ", style("⬇️").dim(), style(name).cyan());
-        std::io::Write::flush(&mut std::io::stdout())?;
-        
-        match package_utils::install_package(name, registry) {
-            Ok((ver, _)) => {
-                println!("{} {}", style("✅").green(), style(ver).dim());
-                installed += 1;
-            }
-            Err(e) => {
-                println!("{} {}", style("❌").red(), style(format!("{}", e)).dim());
-                failed.push(name.clone());
-            }
+    for res in results {
+        match res {
+            Ok(_) => installed += 1,
+            Err((name, _)) => failed.push(name),
         }
+    }
+    
+    // Save lock file
+    if let Ok(lock) = lockfile.lock() {
+        lock.save()?;
+        println!("{} Lock file updated", style("🔒").dim());
     }
     
     let duration = start.elapsed();
     
-    println!("\n{} Installed {} packages in {}", 
+    println!(
+        "\n{} Installed {}/{} packages in {}", 
         style("🎉").bold().green(),
         installed,
+        installed + failed.len(),
         style(humantime::format_duration(duration)).bold().magenta()
     );
     
     if !failed.is_empty() {
-        println!("{} Failed to install: {:?}", style("⚠️").yellow(), failed);
+        println!("{} Failed to install: {:?}\n", style("⚠️").yellow(), failed);
     }
     
     Ok(())

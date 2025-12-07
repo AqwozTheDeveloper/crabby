@@ -12,6 +12,8 @@ use semver::{Version, VersionReq};
 #[derive(Debug, Deserialize)]
 pub struct PackageDist {
     pub tarball: String,
+    #[serde(default)]
+    pub shasum: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -56,11 +58,12 @@ impl Default for PackageBin {
     }
 }
 
-pub fn fetch_package_version(name: &str, registry_url: &str, version_req_str: Option<&str>) -> Result<(String, String)> {
+pub fn fetch_package_version(name: &str, registry_url: &str, version_req_str: Option<&str>, client: &reqwest::blocking::Client) -> Result<(String, String, String)> {
     let encoded_name = name.replace("/", "%2f");
     let url = format!("{}/{}", registry_url, encoded_name);
     
-    let resp = reqwest::blocking::get(&url)
+    let resp = client.get(&url)
+        .send()
         .context(format!("Failed to fetch metadata for package '{}'", name))?
         .error_for_status()?;
     
@@ -71,17 +74,13 @@ pub fn fetch_package_version(name: &str, registry_url: &str, version_req_str: Op
         let latest_version = metadata.dist_tags.latest.clone();
         let version_info = metadata.versions.get(&latest_version)
             .context("Latest version not found")?;
-        return Ok((latest_version, version_info.dist.tarball.clone()));
+        return Ok((latest_version, version_info.dist.tarball.clone(), version_info.dist.shasum.clone()));
     }
 
     let req_str = version_req_str.unwrap();
     // Use semver to find best match
     
     // Quick cleaning of version string for simple cases
-    // npm often uses ranges that rust semver might strict parse, but 1.0.0 crate is good.
-    // e.g., "1.2.3" -> "=1.2.3" for safety if it fails?
-    // semver::VersionReq expects like "^1.2.3"
-    
     let req = VersionReq::parse(req_str).or_else(|_| {
         // Fallback: try parsing as exact version if it's just numbers
         VersionReq::parse(&format!("={}", req_str))
@@ -101,23 +100,23 @@ pub fn fetch_package_version(name: &str, registry_url: &str, version_req_str: Op
         let best_version_str = best_version.to_string();
         let version_info = metadata.versions.get(&best_version_str)
             .context("Version not found in map")?;
-        Ok((best_version_str, version_info.dist.tarball.clone()))
+        Ok((best_version_str, version_info.dist.tarball.clone(), version_info.dist.shasum.clone()))
     } else {
         println!("{} No matching version for {} {}, using latest", style("⚠️").yellow(), name, req_str);
         // Fallback to latest to try our best
         let latest_version = metadata.dist_tags.latest.clone();
         let version_info = metadata.versions.get(&latest_version)
             .context("Latest version not found")?;
-        Ok((latest_version, version_info.dist.tarball.clone()))
+        Ok((latest_version, version_info.dist.tarball.clone(), version_info.dist.shasum.clone()))
     }
 }
 
-pub fn install_package(name: &str, registry_url: &str) -> Result<(String, String)> {
+pub fn install_package(name: &str, registry_url: &str, client: &reqwest::blocking::Client, lockfile: Option<&crate::manifest::CrabbyLock>) -> Result<(String, String)> {
     let mut visited = HashSet::new();
-    install_package_recursive(name, registry_url, None, &mut visited)
+    install_package_recursive(name, registry_url, None, &mut visited, client, lockfile)
 }
 
-fn install_package_recursive(name: &str, registry_url: &str, version_req: Option<&str>, visited: &mut HashSet<String>) -> Result<(String, String)> {
+fn install_package_recursive(name: &str, registry_url: &str, version_req: Option<&str>, visited: &mut HashSet<String>, client: &reqwest::blocking::Client, lockfile: Option<&crate::manifest::CrabbyLock>) -> Result<(String, String)> {
     let visit_key = format!("{}@{}", name, version_req.unwrap_or("latest"));
     if visited.contains(&visit_key) {
         return Ok(("0.0.0".to_string(), "".to_string()));
@@ -126,10 +125,32 @@ fn install_package_recursive(name: &str, registry_url: &str, version_req: Option
 
     println!("{} Resolving {} {}", style("🔍").dim(), name, version_req.unwrap_or("latest"));
 
-    let (version, tarball) = fetch_package_version(name, registry_url, version_req)?;
+    // Check lockfile first if no specific version requirement or exact match
+    if let Some(lock) = lockfile {
+        if let Some(dep) = lock.dependencies.get(name) {
+            let use_lock_version = match version_req {
+                Some(req) => {
+                     // Simple check: if req is "latest" or matches exact version
+                     req == "latest" || req == dep.version
+                },
+                None => true,
+            };
+            
+            if use_lock_version {
+                println!("{} Using locked version {}", style("🔒").dim(), style(&dep.version).dim());
+                download_and_extract(name, &dep.version, &dep.tarball, client, None)?;
+                 return Ok((dep.version.clone(), dep.tarball.clone()));
+            }
+        }
+    }
+
+    let (version, tarball, checksum) = fetch_package_version(name, registry_url, version_req, client)?;
     
-    download_and_extract(name, &version, &tarball)?;
+    // Download and verify integrity with checksum
+    download_and_extract(name, &version, &tarball, client, Some(&checksum))?;
     
+    // Checksum verification is now done inside download_and_extract
+
     let node_modules = Path::new("node_modules");
     let install_dir = node_modules.join(name);
 
@@ -147,7 +168,7 @@ fn install_package_recursive(name: &str, registry_url: &str, version_req: Option
         link_binaries(name, &pkg_json.bin, &install_dir)?;
 
         for (dep_name, dep_ver) in pkg_json.dependencies {
-             install_package_recursive(&dep_name, registry_url, Some(&dep_ver), visited)?;
+             install_package_recursive(&dep_name, registry_url, Some(&dep_ver), visited, client, lockfile)?;
         }
 
         // Run Lifecycle Scripts
@@ -210,7 +231,7 @@ fn link_binaries(pkg_name: &str, bin: &PackageBin, install_dir: &Path) -> Result
     Ok(())
 }
 
-pub fn download_and_extract(name: &str, version: &str, tarball_url: &str) -> Result<()> {
+pub fn download_and_extract(name: &str, version: &str, tarball_url: &str, client: &reqwest::blocking::Client, expected_checksum: Option<&str>) -> Result<()> {
     use crate::config::get_cache_dir;
     
     // Create cache key from package name and version
@@ -224,7 +245,8 @@ pub fn download_and_extract(name: &str, version: &str, tarball_url: &str) -> Res
         fs::read(&cached_file)?
     } else {
         println!("{} Downloading {}", style("⬇️").dim(), name);
-        let response = reqwest::blocking::get(tarball_url)
+        let response = client.get(tarball_url)
+            .send()
             .context("Failed to download tarball")?
             .error_for_status()?;
         
@@ -234,6 +256,19 @@ pub fn download_and_extract(name: &str, version: &str, tarball_url: &str) -> Res
         fs::write(&cached_file, &bytes)?;
         bytes
     };
+
+    // Verify checksum if provided
+    if let Some(expected) = expected_checksum {
+        if !expected.is_empty() {
+            println!("{} Verifying checksum for {}", style("🔐").dim(), name);
+            if !crate::safety::verify_checksum(&cached_file, Some(expected))? {
+                // Remove corrupted file
+                fs::remove_file(&cached_file).ok();
+                anyhow::bail!("Checksum verification failed for package '{}'. Expected: {}", name, expected);
+            }
+            println!("{} Checksum verified for {}", style("✅").green(), name);
+        }
+    }
 
     let tar_gz = GzDecoder::new(&tar_gz_data[..]);
     let mut archive = Archive::new(tar_gz);
