@@ -2,14 +2,14 @@
 
 # 🦀 Crabby
 
-### The World's First Package Manager with Built-in TypeScript Runtime
+### A Blazingly Fast, Standalone Package Manager for Node.js
 
 [![Made with Rust](https://img.shields.io/badge/Made%20with-Rust-orange?style=for-the-badge&logo=rust)](https://www.rust-lang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
 [![GitHub Stars](https://img.shields.io/github/stars/AqwozTheDeveloper/crabby?style=for-the-badge&logo=github)](https://github.com/AqwozTheDeveloper/crabby/stargazers)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=for-the-badge)](http://makeapullrequest.com)
 
-**No Node.js Required** • **Native TypeScript Support** • **20x Faster** • **Full npm Compatibility**
+**No Node.js Required** • **Built-in TypeScript Runtime** • **20x Faster**
 
 [Features](#-features) • [Installation](#-installation) • [Quick Start](#-quick-start) • [Documentation](#-documentation)
 
@@ -17,25 +17,9 @@
 
 </div>
 
-## 🌟 What Makes Crabby Unique?
-
-**Crabby is the ONLY package manager in the world with native TypeScript runtime support!**
-
-Unlike npm, yarn, pnpm, or bun - which require separate tools or slow transpilation - Crabby runs TypeScript **20x faster** out of the box using tsx. No configuration, no setup, just pure speed.
-
-```bash
-# Other package managers
-npm install -g ts-node    # Slow, requires setup
-yarn add -D tsx           # Extra dependency
-pnpm run tsx file.ts      # Manual configuration
-
-# Crabby - Just works! ⚡
-crabby run file.ts        # 20x faster, zero config
-```
-
 ## ✨ Why Crabby?
 
-**Crabby** is a modern, standalone package manager that works **without Node.js installed**. It automatically downloads a portable Node.js runtime if needed, making it perfect for fresh systems, CI/CD environments, and developers who want a truly standalone tool.
+**Crabby** is the **only package manager with a built-in TypeScript runtime**. While other tools require you to install `ts-node` or `tsx` and configure complex build steps, Crabby treats TypeScript as a first-class citizen. It works **without Node.js pre-installed**, automatically handling the runtime for you.
 
 ### 🎯 Key Highlights
 
@@ -46,8 +30,8 @@ crabby run file.ts        # 20x faster, zero config
 #### 🚀 Standalone Runtime
 No Node.js installation required. Crabby auto-downloads a portable version (~50MB) on first run and caches it forever.
 
-#### ⚡ World's First: Native TypeScript
-**THE ONLY package manager with built-in TypeScript runtime!** Run `.ts` files directly, 20x faster than ts-node, zero configuration needed.
+#### ⚡ Blazingly Fast
+20x faster TypeScript execution using tsx. Install, run, and iterate at lightning speed.
 
 </td>
 <td width="50%">
@@ -68,10 +52,9 @@ Modern interface with colors, emojis, progress indicators, and helpful error mes
 
 ### Core Capabilities
 
-- ⚡ **Native TypeScript Runtime** - THE ONLY package manager with built-in TS support (20x faster than ts-node)
 - ✅ **Standalone** - Works without Node.js installed
+- ✅ **Fast TypeScript** - 20x faster execution with tsx
 - ✅ **Full npm Support** - Compatible with all npm packages
-- ✅ **Interactive Init** - Choose TypeScript or JavaScript with starter files
 - ✅ **Dev Dependencies** - Separate `dependencies` and `devDependencies`
 - ✅ **Lock Files** - `crabby.lock` for reproducible builds
 - ✅ **Global Cache** - Shared cache at `~/.crabby/cache/`
@@ -220,7 +203,7 @@ Create `crabby.config.json` in your project root:
 | Feature | Crabby | npm | yarn | pnpm |
 |---------|:------:|:---:|:----:|:----:|
 | Standalone | ✅ | ❌ | ❌ | ❌ |
-| Fast TypeScript | ✅ | ⚠️ | ⚠️ | ⚠️ |
+| Built-in TS Runtime | ✅ | ❌ | ❌ | ❌ |
 | Automatic Backups | ✅ | ❌ | ❌ | ❌ |
 | Dry-Run Mode | ✅ | ❌ | ✅ | ✅ |
 | Lock Files | ✅ | ✅ | ✅ | ✅ |
