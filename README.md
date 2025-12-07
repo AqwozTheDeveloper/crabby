@@ -9,7 +9,7 @@
 [![GitHub Stars](https://img.shields.io/github/stars/AqwozTheDeveloper/crabby?style=for-the-badge&logo=github)](https://github.com/AqwozTheDeveloper/crabby/stargazers)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=for-the-badge)](http://makeapullrequest.com)
 
-**No Node.js Required** • **Built-in TypeScript Runtime** • **20x Faster**
+**No Node.js Required** • **Built-in TypeScript Runtime** • **38x Faster** • **SHA-1 Verified**
 
 [Features](#-features) • [Installation](#-installation) • [Quick Start](#-quick-start) • [Documentation](#-documentation)
 
@@ -37,7 +37,7 @@ No Node.js installation required. Crabby auto-downloads a portable version (~50M
 <td width="50%">
 
 #### 🔒 Enterprise Safety
-Automatic backups, dry-run mode, SHA-256 checksums, and confirmation prompts for all destructive operations.
+Automatic backups, dry-run mode, SHA-1 checksum verification, and confirmation prompts for all destructive operations.
 
 #### 🎨 Beautiful CLI
 Modern interface with colors, emojis, progress indicators, and helpful error messages.
@@ -64,11 +64,20 @@ Modern interface with colors, emojis, progress indicators, and helpful error mes
 
 ### Safety Features
 
-- 🔒 **SHA-256 Checksums** - Verify package integrity
+- 🔒 **SHA-1 Checksum Verification** - Cryptographic verification of all packages (npm-compatible)
 - 💾 **Automatic Backups** - Before destructive operations
 - 🧪 **Dry-Run Mode** - Preview changes without applying them
 - ⚡ **Force Flags** - Skip confirmations for automation
 - ✅ **Validation** - JSON and lockfile integrity checks
+- ⏱️ **Installation Timer** - Track installation duration
+
+### Performance Features
+
+- ⚡ **Parallel Downloads** - 16 concurrent package downloads
+- 🔄 **Lockfile-First Resolution** - Skip network requests when locked
+- 🌐 **Shared HTTP Client** - Connection pooling for faster downloads
+- 💾 **Global Cache** - Reuse downloaded packages across projects
+- 📊 **38x Faster** - Than npm for typical installations
 
 ### Advanced Features
 
@@ -77,6 +86,7 @@ Modern interface with colors, emojis, progress indicators, and helpful error mes
 - 🖼️ **GUI Support** - Works with Electron, Tauri, etc.
 - 📦 **Semantic Versioning** - Smart version range handling
 - ⚙️ **Custom Registry** - Configure via `crabby.config.json`
+- 🔤 **UTF-8 BOM Support** - PowerShell compatibility
 
 ---
 
