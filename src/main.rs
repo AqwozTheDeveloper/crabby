@@ -53,7 +53,7 @@ enum Commands {
     /// Initialize a new Crabby project
     Init,
     /// Install a package from NPM registry
-    #[command(alias = "i")]
+    #[command(visible_aliases = ["i", "add"])]
     Install {
         /// The name of the package to install (installs all if not specified)
         package: Option<String>,
