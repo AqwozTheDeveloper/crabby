@@ -52,23 +52,7 @@ pub fn install_global(package: &str) -> Result<()> {
     println!("   Target: {}", style(global_dir.display()).dim());
     
     // Reuse package_utils::install_package logic but pointing to global dir
-    // We need to temporarily pretend we are in global_dir or implement a "target_dir" param in install_package
-    // Modifying install_package is invasive. 
-    // Alternative: Manually call download and extraction logic here.
-    
     let client = registry::get_client()?;
-    
-    // 1. Resolve and Download
-    // We use a simplified flow here: always latest, no recursive deps *yet* if we want to be simple,
-    // OR we use the full recursive installer but need to handle CWD.
-    // The robust way is to use the recursive installer but setting the cwd effectively.
-    // Since our recursive installer currently assumes "node_modules" in current dir, 
-    // we can change directory to global_dir temporarily? Thread unsafe.
-    
-    // Better: Update package_utils to accept an optional `install_root: &Path`.
-    // But for now, let's implement a focused single-level install + bins for global.
-    // Or just use the recursive one by changing current directory (risky but easy for CLI tool).
-    // Actually, `package_utils` hardcodes `Path::new("node_modules")`.
     
     // Strategy: Change Directory. since CLI is single-process, this is fine.
     let original_cwd = std::env::current_dir()?;
@@ -97,6 +81,12 @@ pub fn install_global(package: &str) -> Result<()> {
             Err(e)
         }
     }
+}
+
+pub fn update_global(package: &str) -> Result<()> {
+    println!("{} Updating global package {}...", style("🌍").bold().blue(), package);
+    // Reuse install logic as it fetches latest matching version
+    install_global(package)
 }
 
 fn link_global_binaries(pkg_name: &str, global_dir: &Path, global_bin_dir: &Path) -> Result<()> {

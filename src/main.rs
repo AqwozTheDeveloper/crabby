@@ -89,6 +89,10 @@ enum Commands {
     Update {
         /// Specific package to update (updates all if not specified)
         package: Option<String>,
+        
+        /// Update global package
+        #[arg(long, short = 'g')]
+        global: bool,
     },
     /// Show outdated packages
     Outdated,
@@ -452,7 +456,19 @@ console.log(greet("Crabby"));
                 }
             }
         }
-        Commands::Update { package } => {
+        Commands::Update { package, global } => {
+            if *global {
+                 if let Some(pkg) = package {
+                    match global::update_global(pkg) {
+                        Ok(_) => println!("{} Global update complete!", style("✨").bold().green()),
+                        Err(e) => println!("{} Global update failed: {}", style("❌").red(), e),
+                    }
+                 } else {
+                     println!("{} Please specify a global package to update", style("⚠️").yellow());
+                 }
+                 return Ok(());
+            }
+
             if let Some(pkg_name) = package {
                 println!("{} Updating {}...", style("📦").bold().blue(), pkg_name);
                 let (version, _tarball) = update::update_package(&pkg_name, &config.registry).await?;
