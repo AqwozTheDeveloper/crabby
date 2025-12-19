@@ -12,6 +12,7 @@ mod search;
 mod global;
 mod audit;
 mod workspace;
+mod self_upgrade;
 
 use clap::{Parser, Subcommand};
 use console::style;
@@ -135,6 +136,12 @@ enum Commands {
         #[arg(allow_hyphen_values = true, trailing_var_arg = true)]
         args: Vec<String>,
     },
+    /// Upgrade crabby to the latest version
+    Upgrade {
+        /// Upgrade crabby itself
+        #[arg(long, alias = "self")]
+        self_upgrade: bool,
+    },
 }
 
 #[tokio::main]
@@ -155,6 +162,11 @@ async fn main() -> Result<()> {
                 format!("{} {}", binary, args.join(" "))
             };
             runner::run_script(&command_str, None)?;
+        }
+        Commands::Upgrade { self_upgrade } => {
+            if *self_upgrade {
+                self_upgrade::check_and_upgrade().await?;
+            }
         }
         Commands::Init => {
             print!("{} ", style("🦀").bold().cyan());

@@ -73,5 +73,6 @@ Write-Host "  crabby exec tsc --init   # Run binaries (or use 'x')" -ForegroundC
 Write-Host "  crabby install -g tool   # Install global CLI tools" -ForegroundColor Cyan
 Write-Host "  crabby audit             # Check vulnerabilities" -ForegroundColor Cyan
 Write-Host "  crabby run src/index.ts  # Run TypeScript files" -ForegroundColor Cyan
+Write-Host "  crabby upgrade --self    # Update crabby to latest" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Learn more: https://github.com/AqwozTheDeveloper/crabby" -ForegroundColor White

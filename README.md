@@ -136,6 +136,9 @@ crabby run src/index.ts
 # Run package scripts
 crabby start
 crabby test
+
+# Upgrade crabby itself
+crabby upgrade --self
 ```
 
 ---
@@ -183,6 +186,14 @@ crabby run src/index.ts        # Run TypeScript file
 crabby run src/index.js        # Run JavaScript file
 crabby start                   # Run start script
 crabby test                    # Run test script
+
+<details>
+<summary><b>🚀 Maintenance</b></summary>
+
+```bash
+crabby upgrade --self          # Upgrade crabby to latest version
+```
+</details>
 ```
 
 </details>
