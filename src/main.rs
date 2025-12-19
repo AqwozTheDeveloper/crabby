@@ -7,6 +7,8 @@ mod update;
 mod safety;
 pub mod registry;
 mod tsx_utils;
+mod cache;
+mod search;
 
 use clap::{Parser, Subcommand};
 use console::style;
@@ -99,6 +101,15 @@ enum Commands {
         #[arg(long)]
         dry_run: bool,
     },
+    /// Search for packages in npm registry
+    Search {
+        /// Search query
+        query: String,
+        
+        /// Limit number of results
+        #[arg(long, short = 'l', default_value = "10")]
+        limit: usize,
+    },
 }
 
 #[tokio::main]
@@ -174,14 +185,15 @@ console.log(greet("Crabby"));
             
             // Determine command to run and file to watch
             let (cmd_template, file_to_watch, is_typescript) = if let Some(ts_file) = ts {
-                (format!("npx -y tsx {}", ts_file), Some(ts_file.clone()), true)
+                // Call tsx directly via node instead of npx to avoid Windows crash
+                (format!("node node_modules/tsx/dist/cli.mjs {}", ts_file), Some(ts_file.clone()), true)
             } else if let Some(js_file) = js {
                 (format!("{} {}", node_str, js_file), Some(js_file.clone()), false)
             } else if let Some(script_name) = script {
                 let path = std::path::Path::new(&script_name);
                 if path.exists() && (script_name.ends_with(".js") || script_name.ends_with(".ts")) {
                     if script_name.ends_with(".ts") {
-                        (format!("npx -y tsx {}", script_name), Some(script_name.clone()), true)
+                        (format!("node node_modules/tsx/dist/cli.mjs {}", script_name), Some(script_name.clone()), true)
                     } else {
                          (format!("{} {}", node_str, script_name), Some(script_name.clone()), false)
                     }
@@ -465,6 +477,9 @@ console.log(greet("Crabby"));
         }
         Commands::Info { package } => {
             update::get_package_info(&package, &config.registry).await?;
+        }
+        Commands::Search { query, limit } => {
+            search::search_packages(&query, *limit).await?;
         }
         Commands::Clean { cache, force, dry_run } => {
             if *dry_run {
