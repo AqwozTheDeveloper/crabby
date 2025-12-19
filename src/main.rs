@@ -183,7 +183,11 @@ async fn main() -> Result<()> {
             let project_type = input.trim().to_lowercase();
             let is_typescript = project_type.is_empty() || project_type == "ts" || project_type == "typescript";
             
-            // Create starter file
+            // Create src directory
+            if !std::path::Path::new("src").exists() {
+                std::fs::create_dir("src")?;
+            }
+
             if is_typescript {
                 let ts_content = r#"// Welcome to your Crabby TypeScript project!
 
@@ -196,26 +200,28 @@ function greet(name: string): string {
 
 console.log(greet("Crabby"));
 "#;
-                std::fs::write("index.ts", ts_content)?;
-                println!("{} Created index.ts", style("✅").green());
+                std::fs::write("src/index.ts", ts_content)?;
+                println!("{} Created src/index.ts", style("✅").green());
                 
                 // Create tsconfig.json
                 if !std::path::Path::new("tsconfig.json").exists() {
                      let tsconfig = r#"{
   "compilerOptions": {
-    "target": "es2020",
+    "target": "ES2020",
     "module": "commonjs",
+    "moduleResolution": "node",
     "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
     "strict": true,
-    "skipLibCheck": true
-  }
+    "skipLibCheck": true,
+    "types": ["node", "express"]
+  },
+  "include": ["src/**/*.ts"]
 }"#;
                     std::fs::write("tsconfig.json", tsconfig)?;
                     println!("{} Created tsconfig.json", style("✅").green());
                 }
 
-                println!("{} Run with: crabby run index.ts", style("💡").dim());
+                println!("{} Run with: crabby run src/index.ts", style("💡").dim());
             } else {
                 let js_content = r#"// Welcome to your Crabby JavaScript project!
 
@@ -228,9 +234,9 @@ function greet(name) {
 
 console.log(greet("Crabby"));
 "#;
-                std::fs::write("index.js", js_content)?;
-                println!("{} Created index.js", style("✅").green());
-                println!("{} Run with: crabby run index.js", style("💡").dim());
+                std::fs::write("src/index.js", js_content)?;
+                println!("{} Created src/index.js", style("✅").green());
+                println!("{} Run with: crabby run src/index.js", style("💡").dim());
             }
             
             println!("\n{} Project initialized successfully!", style("🎉").bold().green());

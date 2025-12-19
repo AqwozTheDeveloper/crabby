@@ -131,7 +131,7 @@ crabby exec tsc --init
 crabby x jest
 
 # Run TypeScript files
-crabby run app.ts
+crabby run src/index.ts
 
 # Run package scripts
 crabby start
@@ -179,8 +179,8 @@ crabby info <package>          # Show package information
 ```bash
 crabby exec <cmd>            # Run binary from node_modules (alias: x)
 crabby run <script>            # Run package.json script
-crabby run app.ts              # Run TypeScript file
-crabby run app.js              # Run JavaScript file
+crabby run src/index.ts        # Run TypeScript file
+crabby run src/index.js        # Run JavaScript file
 crabby start                   # Run start script
 crabby test                    # Run test script
 ```
@@ -240,12 +240,13 @@ crabby install express
 crabby install typescript -D
 
 # Create a simple server
-echo "import express from 'express';" > server.ts
-echo "const app = express();" >> server.ts
-echo "app.listen(3000);" >> server.ts
+mkdir src
+echo "import express from 'express';" > src/index.ts
+echo "const app = express();" >> src/index.ts
+echo "app.listen(3000);" >> src/index.ts
 
 # Run it!
-crabby run server.ts
+crabby run src/index.ts
 ```
 
 ### With Workspaces
