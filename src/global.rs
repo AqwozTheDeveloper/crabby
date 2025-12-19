@@ -1,0 +1,176 @@
+use anyhow::{Context, Result};
+use console::style;
+use std::fs;
+use std::path::{Path, PathBuf};
+use crate::{package_utils, registry, config};
+
+/// Get global installation directory (~/.crabby/global)
+pub fn get_global_dir() -> Result<PathBuf> {
+    let home = dirs::home_dir()
+        .context("Could not determine home directory")?;
+    
+    let global_dir = home.join(".crabby").join("global");
+    if !global_dir.exists() {
+        fs::create_dir_all(&global_dir)?;
+        
+        // Create basic package.json if strictly needed, but we might just use node_modules directly
+        let pkg_json = global_dir.join("package.json");
+        if !pkg_json.exists() {
+             fs::write(&pkg_json, "{\"private\":true,\"dependencies\":{}}")?;
+        }
+    }
+    
+    Ok(global_dir)
+}
+
+/// Get global bin directory (~/.crabby/bin)
+pub fn get_global_bin_dir() -> Result<PathBuf> {
+    let home = dirs::home_dir()
+        .context("Could not determine home directory")?;
+    
+    let bin_dir = home.join(".crabby").join("bin");
+    if !bin_dir.exists() {
+        fs::create_dir_all(&bin_dir)?;
+    }
+    
+    Ok(bin_dir)
+}
+
+/// Install a package globally
+pub fn install_global(package: &str) -> Result<()> {
+    let global_dir = get_global_dir()?;
+    let bin_dir = get_global_bin_dir()?;
+    let config = config::load_config()?;
+    
+    // We treat the global dir like a project with its own node_modules
+    let node_modules = global_dir.join("node_modules");
+    if !node_modules.exists() {
+        fs::create_dir_all(&node_modules)?;
+    }
+
+    println!("{} Installing {} globally...", style("🌍").bold().blue(), package);
+    println!("   Target: {}", style(global_dir.display()).dim());
+    
+    // Reuse package_utils::install_package logic but pointing to global dir
+    // We need to temporarily pretend we are in global_dir or implement a "target_dir" param in install_package
+    // Modifying install_package is invasive. 
+    // Alternative: Manually call download and extraction logic here.
+    
+    let client = registry::get_client()?;
+    
+    // 1. Resolve and Download
+    // We use a simplified flow here: always latest, no recursive deps *yet* if we want to be simple,
+    // OR we use the full recursive installer but need to handle CWD.
+    // The robust way is to use the recursive installer but setting the cwd effectively.
+    // Since our recursive installer currently assumes "node_modules" in current dir, 
+    // we can change directory to global_dir temporarily? Thread unsafe.
+    
+    // Better: Update package_utils to accept an optional `install_root: &Path`.
+    // But for now, let's implement a focused single-level install + bins for global.
+    // Or just use the recursive one by changing current directory (risky but easy for CLI tool).
+    // Actually, `package_utils` hardcodes `Path::new("node_modules")`.
+    
+    // Strategy: Change Directory. since CLI is single-process, this is fine.
+    let original_cwd = std::env::current_dir()?;
+    std::env::set_current_dir(&global_dir)?;
+    
+    // Install package
+    // Note: install_package returns (version, tarball_path)
+    let result = package_utils::install_package(package, &config.registry, &client, None);
+    
+    // Restore CWD
+    // We attempt to restore even if install failed, but trigger error if restore fails methods
+    let restore_res = std::env::set_current_dir(original_cwd);
+    
+    match result {
+        Ok((version, _)) => {
+            restore_res?;
+            
+            // Link binaries to global bin
+            link_global_binaries(package, &global_dir, &bin_dir)?;
+            
+            println!("{} Installed {} v{} globally", style("✅").green(), package, version);
+            Ok(())
+        },
+        Err(e) => {
+            let _ = restore_res; // Best effort restore
+            Err(e)
+        }
+    }
+}
+
+fn link_global_binaries(pkg_name: &str, global_dir: &Path, global_bin_dir: &Path) -> Result<()> {
+    // Read the installed package.json from the global directory
+    let pkg_path = global_dir.join("node_modules").join(pkg_name).join("package.json");
+    
+    if !pkg_path.exists() {
+        println!("{} Warning: package.json not found at {}", style("⚠️").yellow(), pkg_path.display());
+        return Ok(());
+    }
+    
+    let content = fs::read_to_string(&pkg_path)?;
+    let json: serde_json::Value = serde_json::from_str(&content)?;
+    
+    if let Some(bin) = json.get("bin") {
+        if let Some(bin_map) = bin.as_object() {
+            for (bin_name, script_path) in bin_map {
+                if let Some(path_str) = script_path.as_str() {
+                    create_global_shim(bin_name, pkg_name, path_str, global_bin_dir)?;
+                }
+            }
+        } else if let Some(path_str) = bin.as_str() {
+            // "bin": "./cli.js" -> name is package name
+            create_global_shim(pkg_name, pkg_name, path_str, global_bin_dir)?;
+        }
+    }
+    
+    Ok(())
+}
+
+fn create_global_shim(bin_name: &str, pkg_name: &str, script_path: &str, global_bin_dir: &Path) -> Result<()> {
+    // The target script path relative to the global node_modules
+    // absolute path is global_modules / pkg / script
+    let target_bin = global_bin_dir.join(bin_name);
+    
+    println!("   Linking bin: {} -> {}", bin_name, target_bin.display());
+    
+    // Windows: Create .cmd and shell shim
+    #[cfg(target_os = "windows")]
+    {
+        // %~dp0 is the directory of the cmd file (global/bin)
+        // We need to go ../global/node_modules/pkg/script
+        // global/bin is sibling to global/global (where node_modules is)
+        // structure: ~/.crabby/global/node_modules
+        // structure: ~/.crabby/bin
+        // So from bin, go ../global/node_modules
+        
+        // Shim content
+        let cmd_content = format!(
+            "@ECHO OFF\r\nnode \"%~dp0\\..\\global\\node_modules\\{}\\{}\" %*",
+            pkg_name, script_path
+        );
+        fs::write(target_bin.with_extension("cmd"), cmd_content)?;
+        
+        // Also create bash shim for git bash
+        let sh_content = format!(
+            "#!/bin/sh\nexec node \"$0/../../global/node_modules/{}/{}\" \"$@\"",
+            pkg_name, script_path
+        );
+         fs::write(&target_bin, sh_content)?;
+    }
+    
+    #[cfg(not(target_os = "windows"))]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let sh_content = format!(
+            "#!/bin/sh\nexec node \"$0/../../global/node_modules/{}/{}\" \"$@\"",
+            pkg_name, script_path
+        );
+        fs::write(&target_bin, sh_content)?;
+        let mut perms = fs::metadata(&target_bin)?.permissions();
+        perms.set_mode(0o755);
+        fs::set_permissions(&target_bin, perms)?;
+    }
+
+    Ok(())
+}

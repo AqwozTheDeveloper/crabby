@@ -9,6 +9,8 @@ pub mod registry;
 mod tsx_utils;
 mod cache;
 mod search;
+mod global;
+mod audit;
 
 use clap::{Parser, Subcommand};
 use console::style;
@@ -116,6 +118,8 @@ enum Commands {
         #[arg(long, short = 'l', default_value = "10")]
         limit: usize,
     },
+    /// Audit dependencies for vulnerabilities
+    Audit,
 }
 
 #[tokio::main]
@@ -124,8 +128,14 @@ async fn main() -> Result<()> {
     let config = config::CrabbyConfig::load()?;
     
     match &cli.command {
+        Commands::Audit => {
+            tokio::task::spawn_blocking(|| {
+               audit::check_vulnerabilities()
+            }).await??;
+        }
         Commands::Init => {
-            println!("{} {}", style("🦀").bold().cyan(), style("Initializing Crabby Kitchen...").bold());
+            print!("{} ", style("🦀").bold().cyan());
+            println!("{}", style("Initializing Crabby Kitchen...").bold());
             manifest::ensure_package_files()?;
             println!("{}", style("Created package.json").green());
             
@@ -307,11 +317,18 @@ console.log(greet("Crabby"));
         }
         Commands::Install { package, global, save_dev } => {
             if *global {
-                println!("{} Global installation not yet implemented", style("⚠️").yellow());
-                println!("{} Install locally for now: crabby install {}", 
-                    style("💡").cyan(),
-                    package.as_deref().unwrap_or("<package>")
-                );
+                if let Some(pkg) = package {
+                    match global::install_global(pkg) {
+                        Ok(_) => {
+                            let bin_dir = global::get_global_bin_dir()?;
+                            println!("\n{} Global installation complete!", style("✨").bold().green());
+                            println!("   Ensure {} is in your PATH", style(bin_dir.display()).cyan());
+                        }
+                        Err(e) => println!("{} Global install failed: {}", style("❌").red(), e),
+                    }
+                } else {
+                    println!("{} Please specify a package to install globally", style("⚠️").yellow());
+                }
                 return Ok(());
             }
             
