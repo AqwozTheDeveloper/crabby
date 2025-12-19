@@ -70,22 +70,46 @@ fn is_newer(latest: &str, current: &str) -> bool {
 }
 
 async fn perform_upgrade() -> Result<()> {
-    println!("{} Pulling latest changes...", style("📂").bold().blue());
+    // Determine target location (same as installer)
+    let home = dirs::home_dir().context("Could not find home directory")?;
+    let crabby_dir = home.join(".crabby");
+    let source_dir = crabby_dir.join("src");
+    let bin_dir = crabby_dir.join("bin");
     
-    // Check if we are in a git repo
-    let status = Command::new("git")
-        .args(&["pull"])
-        .status()
-        .context("Failed to run 'git pull'. Ensure you are in the crabby source directory.")?;
-        
-    if !status.success() {
-        bail!("Git pull failed");
+    std::fs::create_dir_all(&source_dir)?;
+    
+    println!("{} Preparing source directory at {:?}...", style("📂").bold().blue(), source_dir);
+
+    // If .git doesn't exist in source_dir, clone. Otherwise, pull.
+    if !source_dir.join(".git").exists() {
+        println!("{} Cloning Crabby repository...", style("📥").bold().blue());
+        let status = Command::new("git")
+            .args(&["clone", "https://github.com/AqwozTheDeveloper/crabby", "."])
+            .current_dir(&source_dir)
+            .status()
+            .context("Failed to run 'git clone'. Ensure Git is installed.")?;
+            
+        if !status.success() {
+            bail!("Git clone failed");
+        }
+    } else {
+        println!("{} Pulling latest changes...", style("📂").bold().blue());
+        let status = Command::new("git")
+            .args(&["pull"])
+            .current_dir(&source_dir)
+            .status()
+            .context("Failed to run 'git pull'.")?;
+            
+        if !status.success() {
+            bail!("Git pull failed");
+        }
     }
     
     println!("{} Rebuilding Crabby...", style("🔨").bold().yellow());
     
     let status = Command::new("cargo")
         .args(&["build", "--release"])
+        .current_dir(&source_dir)
         .status()
         .context("Failed to run 'cargo build'. Ensure Rust is installed.")?;
         
@@ -95,25 +119,17 @@ async fn perform_upgrade() -> Result<()> {
     
     println!("{} Installing new binary...", style("📦").bold().magenta());
     
-    // Determine target location (same as installer)
-    let home = dirs::home_dir().context("Could not find home directory")?;
-    let bin_dir = home.join(".crabby").join("bin");
-    
     #[cfg(target_os = "windows")]
     let exe_name = "crabby.exe";
     #[cfg(not(target_os = "windows"))]
     let exe_name = "crabby";
     
     let target_path = bin_dir.join(exe_name);
-    let source_path = std::path::Path::new("target").join("release").join(exe_name);
+    let source_path = source_dir.join("target").join("release").join(exe_name);
     
     if !source_path.exists() {
         bail!("Source binary not found at {:?}", source_path);
     }
-    
-    // On Windows, if we are running the binary we are trying to replace, copy will fail.
-    // However, the user is likely running the binary from the source dir or from terminal.
-    // If they run `crabby upgrade --self` and it's THE one in bin_dir, we might need to overwrite carefully.
     
     std::fs::create_dir_all(&bin_dir)?;
     
