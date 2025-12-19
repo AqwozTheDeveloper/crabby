@@ -334,3 +334,17 @@ pub fn download_and_extract(name: &str, version: &str, tarball_url: &str, client
     Ok(())
 }
 
+pub fn install_all_packages(deps: &HashMap<String, String>, registry_url: &str, client: &reqwest::blocking::Client, lockfile: Option<&crate::manifest::CrabbyLock>) -> Result<()> {
+    if deps.is_empty() {
+        return Ok(());
+    }
+    
+    // Naively install sequentially for now to reuse existing logic
+    for (name, _version_req) in deps {
+        // We ignore the result version/tarball since we are just installing everything
+        let _ = install_package(name, registry_url, client, lockfile)?;
+    }
+    
+    Ok(())
+}
+

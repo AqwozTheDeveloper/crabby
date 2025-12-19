@@ -4,7 +4,7 @@ use std::fs;
 use anyhow::{Context, Result};
 use std::path::Path;
 
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct PackageJson {
     pub name: String,
     pub version: String,
@@ -33,7 +33,15 @@ impl PackageJson {
         }
         let content = content.trim();
         
-        let pkg: PackageJson = serde_json::from_str(&content)?;
+        // Debug
+        // println!("DEBUG: Loaded package.json: '{}'", content);
+        
+        let pkg: PackageJson = match serde_json::from_str(content) {
+            Ok(p) => p,
+            Err(e) => {
+                 return Err(anyhow::anyhow!("Failed to parse package.json: {} (Content: '{}')", e, content));
+            }
+        };
         Ok(pkg)
     }
 

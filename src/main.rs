@@ -11,6 +11,7 @@ mod cache;
 mod search;
 mod global;
 mod audit;
+mod workspace;
 
 use clap::{Parser, Subcommand};
 use console::style;
@@ -335,62 +336,91 @@ console.log(greet("Crabby"));
                 }
                 return Ok(());
             }
-            
-            let config = config::load_config()?;
-            let registry = config.registry;
 
-            // Load lockfile if exists for optimizations
-            let mut lockfile = manifest::CrabbyLock::load().unwrap_or_default();
-            let lockfile_ref = if std::path::Path::new("crabby.lock").exists() {
-                Some(&lockfile)
-            } else {
-                None
-            };
-            
-            // Shared HTTP client creation moved inside spawn_blocking to avoid panic
-            
-            let version_data = if let Some(pkg_name) = package {
-                // Install single package with immutable lockfile ref
-                let registry_url = registry.clone();
-                let pkg_name_clone = pkg_name.clone();
-                let lockfile_clone = lockfile_ref.cloned();
-
-                let result = tokio::task::spawn_blocking(move || {
-                    let client = registry::get_client()?;
-                    package_utils::install_package(&pkg_name_clone, &registry_url, &client, lockfile_clone.as_ref())
+            if let Some(pkg_name) = package {
+                println!("{} Installing {}...", style("📦").bold().blue(), pkg_name);
+                let config = config::load_config()?;
+                let registry_url = config.registry.clone();
+                
+                let (version, _tarball) = tokio::task::spawn_blocking({
+                    let registry_url = registry_url.clone();
+                    let pkg_name = pkg_name.clone();
+                    // Load lockfile to check for existing version
+                    let lockfile = manifest::CrabbyLock::load().ok();
+                    
+                    move || {
+                        let client = registry::get_client()?;
+                        package_utils::install_package(&pkg_name, &registry_url, &client, lockfile.as_ref())
+                    }
                 }).await??;
-                
-                // Update package.json
-                let mut pkg = manifest::PackageJson::load()?;
+
+                let mut pkg_json = manifest::PackageJson::load()?;
                 if *save_dev {
-                    pkg.add_dev_dependency(pkg_name.clone(), format!("^{}", result.0));
-                    println!("{} Saved to devDependencies", style("📝").dim());
+                    pkg_json.add_dev_dependency(pkg_name.clone(), format!("^{}", version));
                 } else {
-                    pkg.add_dependency(pkg_name.clone(), format!("^{}", result.0));
-                    println!("{} Saved to dependencies", style("📝").dim());
+                    pkg_json.add_dependency(pkg_name.clone(), format!("^{}", version));
                 }
-                pkg.save()?;
-                
-                // Return result to update lockfile in new mutable borrow scope
-                Some((pkg_name.clone(), result.0, result.1))
-            } else {
-                None
-            };
-            
-            if let Some((pkg_name, version, tarball)) = version_data {
-                // Update lockfile (mutable borrow is safe here as immutable borrow is dropped)
-                lockfile.add_package(pkg_name.clone(), version.clone(), tarball);
+                pkg_json.save()?;
+
+                 // Update lockfile
+                let mut lockfile = manifest::CrabbyLock::load().unwrap_or_default();
+                lockfile.add_package(pkg_name.clone(), version.clone(), _tarball);
                 lockfile.save()?;
 
-                println!(
-                    "{} Installed {} v{}", 
-                    style("✅").bold().green(), 
-                    style(pkg_name).bold().white(),
-                    style(version).bold().cyan()
-                );
-            } else if package.is_none() {
-                 // Install all packages from package.json
-                install_all_dependencies(&registry).await?;
+                println!("{} Installed {} v{}", style("✅").green(), pkg_name, version);
+            } else {
+                // Check if this is a workspace root
+                let root_path = std::env::current_dir()?;
+                let workspaces = workspace::find_workspaces(&root_path)?;
+                
+                if !workspaces.is_empty() {
+                    println!("{} Found {} workspaces", style("🏢").bold().blue(), workspaces.len());
+                    workspace::link_workspaces(&root_path, &workspaces)?;
+                    
+                    // Install dependencies for each workspace
+                    println!("{} Installing workspace dependencies...", style("📦").bold().blue());
+                    let config = config::load_config()?;
+                    
+                    for ws in workspaces {
+                        println!("   Processing {}", style(&ws.name).cyan());
+                        let registry_url = config.registry.clone();
+                        let ws_path = ws.path.clone();
+                        
+                        tokio::task::spawn_blocking(move || -> Result<()> {
+                            let original_cwd = std::env::current_dir()?;
+                            std::env::set_current_dir(&ws_path)?;
+                            
+                            // Load that workspace's package.json
+                            let pkg = manifest::PackageJson::load()?;
+                            let all_deps = pkg.get_all_dependencies();
+                            
+                            if !all_deps.is_empty() {
+                                let client = registry::get_client()?;
+                                let lockfile = manifest::CrabbyLock::load().ok(); 
+                                package_utils::install_all_packages(&all_deps, &registry_url, &client, lockfile.as_ref())?;
+                            }
+                            
+                            std::env::set_current_dir(original_cwd)?;
+                            Ok(())
+                        }).await??;
+                    }
+                     println!("{} Workspace installation complete", style("✅").bold().green());
+                } else {
+                     // Standard install all from package.json
+                     println!("{} Installing dependencies...", style("📦").bold().blue());
+                     let pkg_json = manifest::PackageJson::load()?;
+                     let all_deps = pkg_json.get_all_dependencies();
+                     let config = config::load_config()?;
+                     let registry_url = config.registry.clone();
+                     
+                     tokio::task::spawn_blocking(move || {
+                        let client = registry::get_client()?;
+                        let lockfile = manifest::CrabbyLock::load().ok();
+                        package_utils::install_all_packages(&all_deps, &registry_url, &client, lockfile.as_ref())
+                     }).await??;
+
+                     println!("{} Done!", style("✅").bold().green());
+                }
             }
         }
         Commands::Remove { package, force } => {
@@ -478,7 +508,7 @@ console.log(greet("Crabby"));
                 let pkg_name_clone = pkg_name.clone();
                 let lockfile_clone = manifest::CrabbyLock::load().ok();
                 
-                tokio::task::spawn_blocking(move || {
+                let (_installed_version, _tarball) = tokio::task::spawn_blocking(move || {
                     let client = registry::get_client()?;
                     package_utils::install_package(&pkg_name_clone, &registry_url, &client, lockfile_clone.as_ref())
                 }).await??;
