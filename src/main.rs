@@ -15,6 +15,8 @@ use console::style;
 use anyhow::Result;
 use std::path::Path;
 
+const MAX_CONCURRENT_DOWNLOADS: usize = 10;
+
 #[derive(Parser)]
 #[command(name = "crabby")]
 #[command(version)]
@@ -76,7 +78,11 @@ enum Commands {
     },
     /// List all installed packages
     #[command(alias = "ls")]
-    List,
+    List {
+        /// Show dependency tree
+        #[arg(long)]
+        tree: bool,
+    },
     /// Update packages to latest versions
     Update {
         /// Specific package to update (updates all if not specified)
@@ -411,17 +417,22 @@ console.log(greet("Crabby"));
             
             println!("{} Removed {}", style("✅").bold().green(), style(package).bold().white());
         }
-        Commands::List => {
+        Commands::List { tree } => {
+            let pkg = manifest::PackageJson::load()?;
             println!("{} Installed packages:", style("📦").bold().blue());
             
-            let pkg = manifest::PackageJson::load()?;
-            if pkg.dependencies.is_empty() {
-                println!("  {}", style("No packages installed").dim());
+            if *tree {
+                let lockfile = manifest::CrabbyLock::load().ok();
+                print_dependency_tree(&pkg, lockfile.as_ref())?;
             } else {
-                for (name, version) in &pkg.dependencies {
-                    println!("  {} {}", style(name).cyan(), style(version).dim());
+                if pkg.dependencies.is_empty() {
+                    println!("  {}", style("No packages installed").dim());
+                } else {
+                    for (name, version) in &pkg.dependencies {
+                        println!("  {} {}", style(name).cyan(), style(version).dim());
+                    }
+                    println!("\n{} {} packages total", style("📊").dim(), pkg.dependencies.len());
                 }
-                println!("\n{} {} packages total", style("📊").dim(), pkg.dependencies.len());
             }
         }
         Commands::Update { package } => {
@@ -673,6 +684,46 @@ async fn install_all_dependencies(registry: &str) -> Result<()> {
     
     if !failed.is_empty() {
         println!("{} Failed to install: {:?}\n", style("⚠️").yellow(), failed);
+    }
+    
+    Ok(())
+}
+
+fn print_dependency_tree(pkg: &manifest::PackageJson, _lockfile: Option<&manifest::CrabbyLock>) -> Result<()> {
+    // Collect all dependencies
+    let mut all_deps = Vec::new();
+    for (name, version) in &pkg.dependencies {
+        all_deps.push((name, version, false));
+    }
+    for (name, version) in &pkg.dev_dependencies {
+        all_deps.push((name, version, true));
+    }
+    
+    if all_deps.is_empty() {
+        println!("  {}", style("No packages installed").dim());
+        return Ok(());
+    }
+    
+    // Sort for consistent output
+    all_deps.sort_by(|a, b| a.0.cmp(b.0));
+    
+    let total = all_deps.len();
+    for (i, (name, version, is_dev)) in all_deps.iter().enumerate() {
+        let is_last = i == total - 1;
+        let prefix = if is_last { "└─" } else { "├─" };
+        
+        let dev_mark = if *is_dev { style(" (dev)").yellow().dim() } else { style("").dim() };
+        
+        println!("{} {} {}{}", 
+            style(prefix).dim(), 
+            style(name).cyan(), 
+            style(version).dim(),
+            dev_mark
+        );
+        
+        // Note: CrabbyLock currently only tracks flattened dependencies, 
+        // so we don't display nested dependencies from the lockfile yet.
+        // To support full tree, we would need to parse node_modules recursively or upgrade CrabbyLock.
     }
     
     Ok(())

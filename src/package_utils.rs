@@ -167,12 +167,24 @@ fn install_package_recursive(name: &str, registry_url: &str, version_req: Option
         // Link Binaries
         link_binaries(name, &pkg_json.bin, &install_dir)?;
 
+        // Run preinstall
+        if let Some(script) = pkg_json.scripts.get("preinstall") {
+            println!("{} Running preinstall for {}: '{}'", style("⚙️").yellow(), name, script);
+            runner::run_script(script, Some(&install_dir))?;
+        }
+
         for (dep_name, dep_ver) in pkg_json.dependencies {
              install_package_recursive(&dep_name, registry_url, Some(&dep_ver), visited, client, lockfile)?;
         }
 
-        // Run Lifecycle Scripts
-        if let Some(script) = pkg_json.scripts.get("install").or(pkg_json.scripts.get("postinstall")) {
+        // Run install
+        if let Some(script) = pkg_json.scripts.get("install") {
+            println!("{} Running install for {}: '{}'", style("⚙️").yellow(), name, script);
+            runner::run_script(script, Some(&install_dir))?;
+        }
+
+        // Run postinstall
+        if let Some(script) = pkg_json.scripts.get("postinstall") {
             println!("{} Running postinstall for {}: '{}'", style("⚙️").yellow(), name, script);
             runner::run_script(script, Some(&install_dir))?;
         }
