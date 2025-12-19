@@ -63,11 +63,14 @@ Write-Host "Key Features:" -ForegroundColor White
 Write-Host "  - Standalone (No Node.js required!)" -ForegroundColor Green
 Write-Host "  - Fast TypeScript execution with tsx" -ForegroundColor Green
 Write-Host "  - Full npm ecosystem support" -ForegroundColor Green
-Write-Host "  - Global cache for faster installs" -ForegroundColor Green
+Write-Host "  - Global package support (install -g)" -ForegroundColor Green
+Write-Host "  - Security auditing (audit)" -ForegroundColor Green
 Write-Host ""
 Write-Host "Get started:" -ForegroundColor White
-Write-Host "  crabby init          # Initialize a new project" -ForegroundColor Cyan
-Write-Host "  crabby install react # Install packages" -ForegroundColor Cyan
-Write-Host "  crabby run app.ts    # Run TypeScript files" -ForegroundColor Cyan
+Write-Host "  crabby init            # Initialize a new project" -ForegroundColor Cyan
+Write-Host "  crabby install react   # Install packages" -ForegroundColor Cyan
+Write-Host "  crabby install -g tool # Install global CLI tools" -ForegroundColor Cyan
+Write-Host "  crabby audit           # Check vulnerabilities" -ForegroundColor Cyan
+Write-Host "  crabby run app.ts      # Run TypeScript files" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Learn more: https://github.com/AqwozTheDeveloper/crabby" -ForegroundColor White
