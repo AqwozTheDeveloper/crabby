@@ -233,6 +233,15 @@ console.log(greet("Crabby"));
                     println!("{} Created tsconfig.json", style("✅").green());
                 }
 
+                // Add dependencies for better IDE experience
+                let mut pkg = manifest::PackageJson::load()?;
+                pkg.add_dev_dependency("typescript".to_string(), "^5.0.0".to_string());
+                pkg.add_dev_dependency("@types/node".to_string(), "^20.0.0".to_string());
+                pkg.add_dev_dependency("@types/express".to_string(), "^4.17.0".to_string());
+                pkg.save()?;
+                println!("{} Added TypeScript types to package.json", style("✅").green());
+
+                println!("{} Run {} to enable IDE autocomplete", style("💡").dim(), style("crabby install").cyan());
                 println!("{} Run with: crabby run src/index.ts", style("💡").dim());
             } else {
                 let js_content = r#"// Welcome to your Crabby JavaScript project!

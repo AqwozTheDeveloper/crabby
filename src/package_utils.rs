@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use anyhow::{Context, Result};
 use std::fs;
 use flate2::read::GzDecoder;
