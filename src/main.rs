@@ -5,6 +5,7 @@ pub mod config;
 mod node_runtime;
 mod update;
 mod safety;
+pub mod registry;
 
 use clap::{Parser, Subcommand};
 use console::style;
@@ -36,6 +37,10 @@ enum Commands {
         /// Run a JavaScript file
         #[arg(long, short = 'j', alias = "js")]
         js: Option<String>,
+
+        /// Watch for changes and restart (listen)
+        #[arg(long, alias = "listen")]
+        listen: bool,
     },
     /// Initialize a new Crabby project
     Init,
@@ -157,28 +162,111 @@ console.log(greet("Crabby"));
             
             println!("\n{} Project initialized successfully!", style("🎉").bold().green());
         }
-        Commands::Cook { script, ts, js } => {
+        Commands::Cook { script, ts, js, listen } => {
             let node_path = node_runtime::get_node_path()?;
             let node_str = node_path.to_string_lossy();
             
-            if let Some(ts_file) = ts {
-                let cmd = format!("npx -y tsx {}", ts_file);
-                runner::run_script_with_node(&cmd, None, &node_str)?;
+            // Determine command to run and file to watch
+            let (cmd_template, file_to_watch) = if let Some(ts_file) = ts {
+                (format!("npx -y tsx {}", ts_file), Some(ts_file.clone()))
             } else if let Some(js_file) = js {
-                let cmd = format!("{} {}", node_str, js_file);
-                runner::run_script(&cmd, None)?;
+                (format!("{} {}", node_str, js_file), Some(js_file.clone()))
             } else if let Some(script_name) = script {
                 let path = std::path::Path::new(&script_name);
                 if path.exists() && (script_name.ends_with(".js") || script_name.ends_with(".ts")) {
                     if script_name.ends_with(".ts") {
-                        let cmd = format!("npx -y tsx {}", script_name);
-                        runner::run_script_with_node(&cmd, None, &node_str)?;
+                        (format!("npx -y tsx {}", script_name), Some(script_name.clone()))
                     } else {
-                        let cmd = format!("{} {}", node_str, script_name);
-                        runner::run_script(&cmd, None)?;
+                         (format!("{} {}", node_str, script_name), Some(script_name.clone()))
                     }
                 } else {
-                    run_package_script(&script_name)?;
+                    // It's a package script
+                    let pkg = manifest::PackageJson::load()?;
+                    if let Some(command_str) = pkg.scripts.get(script_name) {
+                         (command_str.clone(), None) // We don't easily know what file to watch for package scripts unless we parse them
+                    } else {
+                        println!("{} Script '{}' not found", style("❌").red(), script_name);
+                        return Ok(());
+                    }
+                }
+            } else {
+                 println!("{} No script specified", style("❌").red());
+                 return Ok(());
+            };
+
+            if !*listen {
+                runner::run_script(&cmd_template, None)?;
+            } else {
+                // Watch mode
+                println!("{} {}", style("👀 Listening for changes...").bold().blue(), style(&cmd_template).dim());
+                
+                use notify::{Watcher, RecursiveMode, Result as NotifyResult};
+                use std::sync::mpsc::channel;
+                
+                // Initial run
+                let mut child = runner::spawn_script(&cmd_template, None, Some(&node_str)).ok();
+                let mut pipes = if let Some(c) = &mut child {
+                     Some(runner::pipe_output(c))
+                } else {
+                    None
+                };
+                
+                // Setup watcher
+                let (tx, rx) = channel();
+                let mut watcher = notify::recommended_watcher(tx)?;
+                
+                if let Some(file) = &file_to_watch {
+                    let path = std::path::Path::new(file);
+                     if let Some(parent) = path.parent() {
+                         // Watch the parent directory so we catch edits
+                         watcher.watch(parent, RecursiveMode::NonRecursive)?;
+                         println!("{} Watching directory: {}", style("📂").dim(), parent.display());
+                     } else {
+                         watcher.watch(path, RecursiveMode::NonRecursive)?;
+                     }
+                } else {
+                    // Watch current directory if running generic script? Or maybe src?
+                    // For now watch current dir
+                    watcher.watch(std::path::Path::new("."), RecursiveMode::Recursive)?;
+                    println!("{} Watching current directory", style("📂").dim());
+                }
+
+                loop {
+                    match rx.recv() {
+                        Ok(Ok(event)) => {
+                            // Check if the event is relevant (simplified)
+                            // Ideally we check if it matches file_to_watch
+                            let should_restart = if let Some(target) = &file_to_watch {
+                                event.paths.iter().any(|p| p.to_string_lossy().contains(target))
+                            } else {
+                                true 
+                            };
+
+                            if should_restart {
+                                println!("\n{} Change detected, restarting...", style("🔄").yellow());
+                                
+                                // Kill current process
+                                if let Some(mut c) = child {
+                                    let _ = c.kill();
+                                    let _ = c.wait(); // Prevent zombies
+                                }
+                                
+                                // Wait a bit for file release
+                                std::thread::sleep(std::time::Duration::from_millis(100));
+                                
+                                // Clean screen?
+                                // print!("{}[2J", 27 as char);
+                                
+                                // Restart
+                                child = runner::spawn_script(&cmd_template, None, Some(&node_str)).ok();
+                                if let Some(c) = &mut child {
+                                    pipes = Some(runner::pipe_output(c));
+                                }
+                            }
+                        },
+                        Ok(Err(e)) => println!("Watch error: {:?}", e),
+                        Err(_) => break,
+                    }
                 }
             }
         }
@@ -200,12 +288,18 @@ console.log(greet("Crabby"));
                 None
             };
             
-            // Shared HTTP client
-            let client = reqwest::blocking::Client::new();
+            // Shared HTTP client creation moved inside spawn_blocking to avoid panic
             
             let version_data = if let Some(pkg_name) = package {
                 // Install single package with immutable lockfile ref
-                let result = package_utils::install_package(pkg_name, &registry, &client, lockfile_ref)?;
+                let registry_url = registry.clone();
+                let pkg_name_clone = pkg_name.clone();
+                let lockfile_clone = lockfile_ref.cloned();
+
+                let result = tokio::task::spawn_blocking(move || {
+                    let client = registry::get_client()?;
+                    package_utils::install_package(&pkg_name_clone, &registry_url, &client, lockfile_clone.as_ref())
+                }).await??;
                 
                 // Update package.json
                 let mut pkg = manifest::PackageJson::load()?;
@@ -304,9 +398,14 @@ console.log(greet("Crabby"));
                 let (version, _tarball) = update::update_package(&pkg_name, &config.registry).await?;
                 
                 // Create HTTP client and load lockfile for optimized installation
-                let client = reqwest::blocking::Client::new();
-                let lockfile = manifest::CrabbyLock::load().ok();
-                package_utils::install_package(&pkg_name, &config.registry, &client, lockfile.as_ref())?;
+                let registry_url = config.registry.clone();
+                let pkg_name_clone = pkg_name.clone();
+                let lockfile_clone = manifest::CrabbyLock::load().ok();
+                
+                tokio::task::spawn_blocking(move || {
+                    let client = registry::get_client()?;
+                    package_utils::install_package(&pkg_name_clone, &registry_url, &client, lockfile_clone.as_ref())
+                }).await??;
                 
                 let mut pkg_json = manifest::PackageJson::load()?;
                 pkg_json.add_dependency(pkg_name.clone(), format!("^{}", version));
@@ -456,7 +555,7 @@ async fn install_all_dependencies(registry: &str) -> Result<()> {
     let registry_arc = Arc::new(registry.to_string());
     
     // Create shared HTTP client (cheap to clone, reuses connection pool)
-    let shared_client = Arc::new(reqwest::blocking::Client::new());
+    let shared_client = Arc::new(registry::get_client()?);
     
     let results = futures::stream::iter(all_deps)
         .map(|(name, _version)| {

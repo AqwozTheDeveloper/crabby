@@ -61,8 +61,12 @@ pub fn create_backup(path: &Path) -> Result<std::path::PathBuf> {
         .duration_since(SystemTime::UNIX_EPOCH)?
         .as_secs();
     
+    let file_name = path.file_name()
+        .map(|s| s.to_string_lossy())
+        .unwrap_or_else(|| std::borrow::Cow::from("backup"));
+
     let backup_name = format!("{}.backup.{}", 
-        path.file_name().unwrap().to_string_lossy(),
+        file_name,
         timestamp
     );
     

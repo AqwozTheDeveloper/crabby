@@ -26,9 +26,12 @@ impl PackageJson {
         let mut content = fs::read_to_string("package.json")?;
         
         // Strip UTF-8 BOM if present (fixes PowerShell Out-File issue)
+        // Strip UTF-8 BOM if present (fixes PowerShell Out-File issue)
+        // Also clean up any leading/trailing whitespace that might come from wacky editors
         if content.starts_with('\u{FEFF}') {
             content = content.trim_start_matches('\u{FEFF}').to_string();
         }
+        let content = content.trim();
         
         let pkg: PackageJson = serde_json::from_str(&content)?;
         Ok(pkg)
@@ -59,12 +62,12 @@ impl PackageJson {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct CrabbyLock {
     pub dependencies: HashMap<String, LockDependency>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct LockDependency {
     pub version: String,
     pub tarball: String,

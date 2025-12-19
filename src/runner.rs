@@ -14,10 +14,8 @@ pub fn run_script_with_node(command_str: &str, cwd: Option<&std::path::Path>, no
     run_script_impl(command_str, cwd, Some(node_path))
 }
 
-fn run_script_impl(command_str: &str, cwd: Option<&std::path::Path>, node_path: Option<&str>) -> Result<()> {
+pub fn spawn_script(command_str: &str, cwd: Option<&std::path::Path>, node_path: Option<&str>) -> Result<std::process::Child> {
     println!("{} {}", style("🍳 Cooking:").bold().yellow(), style(command_str).cyan());
-
-    let start = Instant::now();
 
     // Use provided CWD or current dir
     let working_dir = match cwd {
@@ -46,7 +44,7 @@ fn run_script_impl(command_str: &str, cwd: Option<&std::path::Path>, node_path: 
     #[cfg(not(target_os = "windows"))]
     let (shell, arg) = ("sh", "-c");
 
-    let mut child = Command::new(shell)
+    let child = Command::new(shell)
         .arg(arg)
         .arg(command_str)
         .current_dir(&working_dir)
@@ -55,7 +53,11 @@ fn run_script_impl(command_str: &str, cwd: Option<&std::path::Path>, node_path: 
         .stderr(Stdio::piped())
         .spawn()
         .map_err(|e| anyhow::anyhow!("Failed to execute command '{}': {}", command_str, e))?;
+        
+    Ok(child)
+}
 
+pub fn pipe_output(child: &mut std::process::Child) -> (std::thread::JoinHandle<()>, std::thread::JoinHandle<()>) {
     let stdout = child.stdout.take().expect("Failed to open stdout");
     let stderr = child.stderr.take().expect("Failed to open stderr");
 
@@ -92,6 +94,15 @@ fn run_script_impl(command_str: &str, cwd: Option<&std::path::Path>, node_path: 
             }
         }
     });
+    
+    (stdout_thread, stderr_thread)
+}
+
+fn run_script_impl(command_str: &str, cwd: Option<&std::path::Path>, node_path: Option<&str>) -> Result<()> {
+    let start = Instant::now();
+
+    let mut child = spawn_script(command_str, cwd, node_path)?;
+    let (stdout_thread, stderr_thread) = pipe_output(&mut child);
 
     let status = child.wait()?;
     let _ = stdout_thread.join();
