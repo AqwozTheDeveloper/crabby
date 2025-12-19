@@ -1,0 +1,33 @@
+cargo :     Updating 
+crates.io index
+At line:1 char:1
++ cargo check 2>&1 | 
+Out-File -Encoding as
+cii check_error.txt; 
+Get-Cont ...
++ ~~~~~~~~~~~~~~~~
+    + CategoryInfo   
+           : NotSpe  
+  cified: (    Upd   
+ ating crates.io     
+index:String) []    ,
+ RemoteExceptio    n
+    + FullyQualified 
+   ErrorId : Native  
+  CommandError
+ 
+error: failed to sele
+ct a version for the 
+requirement `swc_ecma
+_transforms_typescrip
+t = "^0.228"`
+candidate versions fo
+und which didn't matc
+h: 36.0.0, 35.0.0, 34
+.0.0, ...
+location searched: cr
+ates.io index
+required by package `
+crabby v0.1.0 (C:\Use
+rs\amesa\Desktop\crab
+by)`

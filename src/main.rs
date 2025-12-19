@@ -6,6 +6,7 @@ mod node_runtime;
 mod update;
 mod safety;
 pub mod registry;
+mod tsx_utils;
 
 use clap::{Parser, Subcommand};
 use console::style;
@@ -49,6 +50,11 @@ enum Commands {
     Install {
         /// The name of the package to install (installs all if not specified)
         package: Option<String>,
+        
+        /// Install globally (system-wide, accessible everywhere)
+        #[arg(long, short = 'g', alias = "to-root")]
+        global: bool,
+        
         /// Save as dev dependency
         #[arg(long, short = 'D')]
         save_dev: bool,
@@ -167,23 +173,23 @@ console.log(greet("Crabby"));
             let node_str = node_path.to_string_lossy();
             
             // Determine command to run and file to watch
-            let (cmd_template, file_to_watch) = if let Some(ts_file) = ts {
-                (format!("npx -y tsx {}", ts_file), Some(ts_file.clone()))
+            let (cmd_template, file_to_watch, is_typescript) = if let Some(ts_file) = ts {
+                (format!("npx -y tsx {}", ts_file), Some(ts_file.clone()), true)
             } else if let Some(js_file) = js {
-                (format!("{} {}", node_str, js_file), Some(js_file.clone()))
+                (format!("{} {}", node_str, js_file), Some(js_file.clone()), false)
             } else if let Some(script_name) = script {
                 let path = std::path::Path::new(&script_name);
                 if path.exists() && (script_name.ends_with(".js") || script_name.ends_with(".ts")) {
                     if script_name.ends_with(".ts") {
-                        (format!("npx -y tsx {}", script_name), Some(script_name.clone()))
+                        (format!("npx -y tsx {}", script_name), Some(script_name.clone()), true)
                     } else {
-                         (format!("{} {}", node_str, script_name), Some(script_name.clone()))
+                         (format!("{} {}", node_str, script_name), Some(script_name.clone()), false)
                     }
                 } else {
                     // It's a package script
                     let pkg = manifest::PackageJson::load()?;
                     if let Some(command_str) = pkg.scripts.get(script_name) {
-                         (command_str.clone(), None) // We don't easily know what file to watch for package scripts unless we parse them
+                         (command_str.clone(), None, false) // We don't easily know what file to watch for package scripts unless we parse them
                     } else {
                         println!("{} Script '{}' not found", style("❌").red(), script_name);
                         return Ok(());
@@ -193,6 +199,11 @@ console.log(greet("Crabby"));
                  println!("{} No script specified", style("❌").red());
                  return Ok(());
             };
+            
+            // Check if tsx is available for TypeScript files
+            if is_typescript && !tsx_utils::ensure_tsx_available()? {
+                return Ok(());
+            }
 
             if !*listen {
                 runner::run_script(&cmd_template, None)?;
@@ -276,7 +287,16 @@ console.log(greet("Crabby"));
         Commands::Test => {
             run_package_script("test")?;
         }
-        Commands::Install { package, save_dev } => {
+        Commands::Install { package, global, save_dev } => {
+            if *global {
+                println!("{} Global installation not yet implemented", style("⚠️").yellow());
+                println!("{} Install locally for now: crabby install {}", 
+                    style("💡").cyan(),
+                    package.as_deref().unwrap_or("<package>")
+                );
+                return Ok(());
+            }
+            
             let config = config::load_config()?;
             let registry = config.registry;
 
