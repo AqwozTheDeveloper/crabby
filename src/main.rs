@@ -125,6 +125,16 @@ enum Commands {
     },
     /// Audit dependencies for vulnerabilities
     Audit,
+    /// Execute a package binary (npx alternative)
+    #[command(alias = "x", alias = "exec")]
+    Exec {
+        /// The binary to execute
+        binary: String,
+        
+        /// Arguments to pass to the binary
+        #[arg(allow_hyphen_values = true, trailing_var_arg = true)]
+        args: Vec<String>,
+    },
 }
 
 #[tokio::main]
@@ -137,6 +147,14 @@ async fn main() -> Result<()> {
             tokio::task::spawn_blocking(|| {
                audit::check_vulnerabilities()
             }).await??;
+        }
+        Commands::Exec { binary, args } => {
+            let command_str = if args.is_empty() {
+                binary.clone()
+            } else {
+                format!("{} {}", binary, args.join(" "))
+            };
+            runner::run_script(&command_str, None)?;
         }
         Commands::Init => {
             print!("{} ", style("🦀").bold().cyan());
@@ -180,6 +198,23 @@ console.log(greet("Crabby"));
 "#;
                 std::fs::write("index.ts", ts_content)?;
                 println!("{} Created index.ts", style("✅").green());
+                
+                // Create tsconfig.json
+                if !std::path::Path::new("tsconfig.json").exists() {
+                     let tsconfig = r#"{
+  "compilerOptions": {
+    "target": "es2020",
+    "module": "commonjs",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true
+  }
+}"#;
+                    std::fs::write("tsconfig.json", tsconfig)?;
+                    println!("{} Created tsconfig.json", style("✅").green());
+                }
+
                 println!("{} Run with: crabby run index.ts", style("💡").dim());
             } else {
                 let js_content = r#"// Welcome to your Crabby JavaScript project!

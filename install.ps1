@@ -67,10 +67,11 @@ Write-Host "  - Global package support (install -g)" -ForegroundColor Green
 Write-Host "  - Security auditing (audit)" -ForegroundColor Green
 Write-Host ""
 Write-Host "Get started:" -ForegroundColor White
-Write-Host "  crabby init            # Initialize a new project" -ForegroundColor Cyan
-Write-Host "  crabby install react   # Install packages" -ForegroundColor Cyan
-Write-Host "  crabby install -g tool # Install global CLI tools" -ForegroundColor Cyan
-Write-Host "  crabby audit           # Check vulnerabilities" -ForegroundColor Cyan
-Write-Host "  crabby run app.ts      # Run TypeScript files" -ForegroundColor Cyan
+Write-Host "  crabby init              # Initialize a new project" -ForegroundColor Cyan
+Write-Host "  crabby add react         # Add a package" -ForegroundColor Cyan
+Write-Host "  crabby exec tsc --init   # Run binaries (or use 'x')" -ForegroundColor Cyan
+Write-Host "  crabby install -g tool   # Install global CLI tools" -ForegroundColor Cyan
+Write-Host "  crabby audit             # Check vulnerabilities" -ForegroundColor Cyan
+Write-Host "  crabby run app.ts        # Run TypeScript files" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Learn more: https://github.com/AqwozTheDeveloper/crabby" -ForegroundColor White

@@ -116,17 +116,19 @@ chmod +x install.sh
 ## 🎯 Quick Start
 
 ```bash
-# Initialize a new project
+# Initialize a new project (interactive)
 crabby init
 
 # Install all dependencies
 crabby install
 
-# Install a specific package
-crabby install express
+# Add a package (alias for install)
+crabby add express
+crabby add typescript -D
 
-# Install as dev dependency
-crabby install typescript --save-dev
+# Run binaries (npx alternative)
+crabby exec tsc --init
+crabby x jest
 
 # Run TypeScript files
 crabby run app.ts
@@ -144,8 +146,9 @@ crabby test
 <summary><b>📦 Package Management</b></summary>
 
 ```bash
-crabby init                    # Initialize a new project
+crabby init                    # Initialize a new project (interactive)
 crabby install                 # Install all dependencies
+crabby add <package>           # Add a package (alias for install)
 crabby install <package>       # Install specific package
 crabby install <pkg> -D        # Install as dev dependency
 crabby remove <package>        # Remove package
@@ -174,6 +177,7 @@ crabby info <package>          # Show package information
 <summary><b>▶️ Running Code</b></summary>
 
 ```bash
+crabby exec <cmd>            # Run binary from node_modules (alias: x)
 crabby run <script>            # Run package.json script
 crabby run app.ts              # Run TypeScript file
 crabby run app.js              # Run JavaScript file
