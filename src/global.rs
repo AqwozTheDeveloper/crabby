@@ -75,7 +75,7 @@ pub fn install_global(package: &str) -> Result<()> {
             // Link binaries to global bin
             link_global_binaries(package, &global_dir, &bin_dir)?;
             
-            println!("{} Installed {} v{} globally", style("✅").green(), package, version);
+            println!("{} Installed {} v{}", style("✅").green(), style(package).bold(), style(&version).dim());
             Ok(())
         },
         Err(e) => {

@@ -487,16 +487,15 @@ console.log(greet("Crabby"));
                 }
 
                 for pkg_name in packages {
-                    println!("{} Installing {} globally...", style("🌍").bold().blue(), style(pkg_name).cyan());
                     match global::install_global(pkg_name) {
-                        Ok(_) => {
-                            let bin_dir = global::get_global_bin_dir()?;
-                            println!("   {} Global installation complete!", style("✨").bold().green());
-                            println!("   {} Ensure {} is in your PATH", style("💡").dim(), style(bin_dir.display()).cyan());
-                        }
+                        Ok(_) => {}
                         Err(e) => println!("{} Global install failed for {}: {}", style("❌").red(), pkg_name, e),
                     }
                 }
+
+                let bin_dir = global::get_global_bin_dir()?;
+                println!("\n{} Global installation complete!", style("✨").bold().green());
+                println!("   {} Ensure {} is in your PATH", style("💡").dim(), style(bin_dir.display()).cyan());
                 return Ok(());
             }
 
