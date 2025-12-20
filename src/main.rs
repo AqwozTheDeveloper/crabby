@@ -236,6 +236,7 @@ console.log(greet("Crabby"));
                 // Add dependencies for better IDE experience
                 let mut pkg = manifest::PackageJson::load()?;
                 pkg.add_dev_dependency("typescript".to_string(), "^5.0.0".to_string());
+                pkg.add_dev_dependency("tsx".to_string(), "^4.0.0".to_string());
                 pkg.add_dev_dependency("@types/node".to_string(), "^20.0.0".to_string());
                 pkg.add_dev_dependency("@types/express".to_string(), "^4.17.0".to_string());
                 pkg.save()?;
@@ -268,15 +269,16 @@ console.log(greet("Crabby"));
             
             // Determine command to run and file to watch
             let (cmd_template, file_to_watch, is_typescript) = if let Some(ts_file) = ts {
-                // Call tsx directly via node instead of npx to avoid Windows crash
-                (format!("node node_modules/tsx/dist/cli.mjs {}", ts_file), Some(ts_file.clone()), true)
+                let tsx_path = tsx_utils::get_tsx_path().unwrap_or_default();
+                (format!("node \"{}\" {}", tsx_path.to_string_lossy(), ts_file), Some(ts_file.clone()), true)
             } else if let Some(js_file) = js {
                 (format!("{} {}", node_str, js_file), Some(js_file.clone()), false)
             } else if let Some(script_name) = script {
                 let path = std::path::Path::new(&script_name);
                 if path.exists() && (script_name.ends_with(".js") || script_name.ends_with(".ts")) {
                     if script_name.ends_with(".ts") {
-                        (format!("node node_modules/tsx/dist/cli.mjs {}", script_name), Some(script_name.clone()), true)
+                        let tsx_path = tsx_utils::get_tsx_path().unwrap_or_default();
+                        (format!("node \"{}\" {}", tsx_path.to_string_lossy(), script_name), Some(script_name.clone()), true)
                     } else {
                          (format!("{} {}", node_str, script_name), Some(script_name.clone()), false)
                     }
