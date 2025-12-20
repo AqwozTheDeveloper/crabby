@@ -274,7 +274,24 @@ crabby install  # Links all workspace packages
 ```
 
 ---
-
+ 
+## 🛠️ Troubleshooting
+ 
+### Upgrade Rescue Command
+If `crabby upgrade --self` fails due to Git conflicts or corrupted cache, use this "Rescue Command" to perform a clean reinstall of the latest version:
+ 
+#### Windows (PowerShell)
+```powershell
+Remove-Item -Path "$HOME\.crabby\src" -Recurse -Force; crabby upgrade --self
+```
+ 
+#### macOS / Linux (Bash)
+```bash
+rm -rf ~/.crabby/src && crabby upgrade --self
+```
+ 
+---
+ 
 ## 🤝 Contributing
 
 Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
