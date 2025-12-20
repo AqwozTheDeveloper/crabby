@@ -9,7 +9,7 @@ use crate::manifest::PackageJson;
 pub struct Workspace {
     pub name: String,
     pub path: PathBuf,
-    pub package_json: PackageJson,
+    pub _package_json: PackageJson,
 }
 
 /// Find all workspaces based on the patterns in root package.json
@@ -62,7 +62,7 @@ pub fn find_workspaces(root: &Path) -> Result<Vec<Workspace>> {
                         workspaces.push(Workspace {
                             name: ws_pkg.name.clone(),
                             path: pkg_dir,
-                            package_json: ws_pkg,
+                            _package_json: ws_pkg,
                         });
                     }
                     Err(e) => println!("{} Error reading workspace glob: {}", style("⚠️").yellow(), e),
