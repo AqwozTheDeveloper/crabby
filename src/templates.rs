@@ -91,7 +91,8 @@ app.listen(port, () => {
     "esModuleInterop": true,
     "strict": true,
     "skipLibCheck": true,
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "typeRoots": ["./node_modules/@types"]
   },
   "include": ["src/**/*.ts"]
 }"#;

@@ -223,16 +223,19 @@ async fn main() -> Result<()> {
             }
 
             if is_typescript {
-                let ts_content = r#"// Welcome to your Crabby TypeScript project!
+                let ts_content = r#"import express from 'express';
 
+// Welcome to your Crabby TypeScript project!
 console.log("Hello from TypeScript! 🦀");
 
-// Example function
-function greet(name: string): string {
-    return `Hello, ${name}!`;
-}
+const app = express();
+const port = 3000;
 
-console.log(greet("Crabby"));
+app.get('/', (req, res) => {
+    res.send('Hello from Crabby! 🦀');
+});
+
+console.log(`🚀 Suggested: Run 'crabby install' then check autocomplete here!`);
 "#;
                 std::fs::write("src/index.ts", ts_content)?;
                 println!("{} Created src/index.ts", style("✅").green());
@@ -247,7 +250,8 @@ console.log(greet("Crabby"));
     "esModuleInterop": true,
     "strict": true,
     "skipLibCheck": true,
-    "lib": ["ES2020", "DOM"]
+    "lib": ["ES2020", "DOM"],
+    "typeRoots": ["./node_modules/@types"]
   },
   "include": ["src/**/*.ts"]
 }"#;
