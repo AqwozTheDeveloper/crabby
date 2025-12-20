@@ -225,17 +225,17 @@ async fn main() -> Result<()> {
             if is_typescript {
                 let ts_content = r#"import express from 'express';
 
-// Welcome to your Crabby TypeScript project!
-console.log("Hello from TypeScript! 🦀");
-
 const app = express();
 const port = 3000;
 
 app.get('/', (req, res) => {
-    res.send('Hello from Crabby! 🦀');
+  res.send('Hello from Crabby Server! 🦀');
 });
 
-console.log(`🚀 Suggested: Run 'crabby install' then check autocomplete here!`);
+app.listen(port, () => {
+  console.log(`🚀 Server ready at http://localhost:${port}`);
+  console.log("💡 Try autocomplete: type 'app.' below!");
+});
 "#;
                 std::fs::write("src/index.ts", ts_content)?;
                 println!("{} Created src/index.ts", style("✅").green());
@@ -272,18 +272,20 @@ console.log(`🚀 Suggested: Run 'crabby install' then check autocomplete here!`
                 println!("{} Run {} to enable IDE autocomplete", style("💡").dim(), style("crabby install").cyan());
                 println!("{} Run with: crabby run src/index.ts", style("💡").dim());
             } else {
-                let js_content = r#"// Welcome to your Crabby JavaScript project!
+                let index_js = r#"const express = require('express');
 
-console.log("Hello from JavaScript! 🦀");
+const app = express();
+const port = 3000;
 
-// Example function
-function greet(name) {
-    return `Hello, ${name}!`;
-}
+app.get('/', (req, res) => {
+  res.send('Hello from Crabby Server! 🦀');
+});
 
-console.log(greet("Crabby"));
+app.listen(port, () => {
+  console.log(`🚀 Server ready at http://localhost:${port}`);
+});
 "#;
-                std::fs::write("src/index.js", js_content)?;
+                std::fs::write("src/index.js", index_js)?;
                 println!("{} Created src/index.js", style("✅").green());
                 println!("{} Run with: crabby run src/index.js", style("💡").dim());
             }
@@ -347,14 +349,35 @@ console.log(greet("Crabby"));
                 let path = std::path::Path::new(&script_name);
                 if path.exists() && (script_name.ends_with(".js") || script_name.ends_with(".ts")) {
                     if script_name.ends_with(".ts") {
+                        let mut script_name_norm = script_name.clone();
+                        #[cfg(target_os = "windows")]
+                        {
+                            script_name_norm = script_name_norm.replace("\\", "/");
+                        }
+
                         let cmd = match tsx_utils::get_tsx_command() {
-                            Ok(tsx_utils::TsxCommand::NodeMjs(p)) => format!("node \"{}\" {}", p.to_string_lossy(), script_name),
-                            Ok(tsx_utils::TsxCommand::Executable(p)) => format!("\"{}\" {}", p.to_string_lossy(), script_name),
-                            Err(_) => format!("node node_modules/tsx/dist/cli.mjs {}", script_name),
+                            Ok(tsx_utils::TsxCommand::NodeMjs(p)) => {
+                                let mut p_str = p.to_string_lossy().to_string();
+                                #[cfg(target_os = "windows")]
+                                { p_str = p_str.replace("\\", "/"); }
+                                format!("node \"{}\" {}", p_str, script_name_norm)
+                            },
+                            Ok(tsx_utils::TsxCommand::Executable(p)) => {
+                                let mut p_str = p.to_string_lossy().to_string();
+                                #[cfg(target_os = "windows")]
+                                { p_str = p_str.replace("\\", "/"); }
+                                format!("\"{}\" {}", p_str, script_name_norm)
+                            },
+                            Err(_) => format!("node node_modules/tsx/dist/cli.mjs {}", script_name_norm),
                         };
-                        (cmd, Some(script_name.clone()), true)
+                        (cmd, Some(script_name_norm.clone()), true)
                     } else {
-                         (format!("{} {}", node_str, script_name), Some(script_name.clone()), false)
+                        let mut script_name_norm = script_name.clone();
+                        #[cfg(target_os = "windows")]
+                        {
+                            script_name_norm = script_name_norm.replace("\\", "/");
+                        }
+                         (format!("{} {}", node_str, script_name_norm), Some(script_name_norm.clone()), false)
                     }
                 } else {
                     // It's a package script
