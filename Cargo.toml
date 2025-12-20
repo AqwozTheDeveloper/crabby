@@ -1,6 +1,6 @@
 [package]
 name = "crabby"
-version = "2.7.4"
+version = "2.7.5"
 edition = "2021"
 description = "A blazingly fast, standalone package manager for Node.js - No Node.js required!"
 repository = "https://github.com/AqwozTheDeveloper/crabby"

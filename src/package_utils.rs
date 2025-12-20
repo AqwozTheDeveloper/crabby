@@ -130,7 +130,9 @@ fn install_package_recursive(name: &str, registry_url: &str, version_req: Option
     download_and_extract(name, &version, &tarball, client, Some(&checksum))?;
 
     let node_modules = Path::new("node_modules");
-    let install_dir = node_modules.join(name);
+    // Normalize name for filesystem (handle scoped packages @types/node)
+    let safe_name = name.replace("/", &std::path::MAIN_SEPARATOR.to_string());
+    let install_dir = node_modules.join(&safe_name);
     let mut pkg_deps = HashMap::new();
 
     let pkg_json_path = install_dir.join("package.json");
@@ -273,7 +275,9 @@ pub fn download_and_extract(name: &str, version: &str, tarball_url: &str, client
         fs::create_dir_all(node_modules)?;
     }
     
-    let target_dir = node_modules.join(name);
+    // Normalize name for filesystem (handle scoped packages @types/node)
+    let safe_name = name.replace("/", &std::path::MAIN_SEPARATOR.to_string());
+    let target_dir = node_modules.join(&safe_name);
     if target_dir.exists() {
         fs::remove_dir_all(&target_dir)?;
     }
@@ -281,19 +285,19 @@ pub fn download_and_extract(name: &str, version: &str, tarball_url: &str, client
 
     for entry in archive.entries()? {
         let mut entry = entry?;
-        let path = entry.path()?;
-        let path_str = path.to_string_lossy();
-        let relative_path = if path_str.starts_with("package/") {
-             path.strip_prefix("package")?
-        } else {
-             &path
-        };
+        let path = entry.path()?.to_path_buf();
+        
+        // Strip the first component (usually "package", but can be anything)
+        let mut components = path.components();
+        let _root = components.next();
+        let relative_path = components.as_path();
 
         if relative_path.as_os_str().is_empty() {
              continue; 
         }
 
         let extract_path = target_dir.join(relative_path);
+        // println!("   {} Extracting to: {}", style("📄").dim(), extract_path.display());
         if let Some(parent) = extract_path.parent() {
             fs::create_dir_all(parent)?;
         }

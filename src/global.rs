@@ -96,7 +96,7 @@ fn link_global_binaries(pkg_name: &str, global_dir: &Path, global_bin_dir: &Path
     let pkg_path = global_dir.join("node_modules").join(pkg_name).join("package.json");
     
     if !pkg_path.exists() {
-        println!("{} Warning: package.json not found at {}", style("⚠️").yellow(), pkg_path.display());
+        println!("{} Warning: package.json not found at {}", style("⚠️").yellow(), style(pkg_path.display()).dim());
         return Ok(());
     }
     
