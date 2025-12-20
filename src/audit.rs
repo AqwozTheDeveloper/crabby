@@ -2,127 +2,123 @@ use anyhow::{Context, Result};
 use console::style;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use crate::{config, manifest, registry};
+use crate::{manifest, registry};
 
 #[derive(Debug, Serialize)]
-struct AuditRequest {
+struct OsvPackage {
     name: String,
-    version: String,
-    install: Vec<String>,
-    #[serde(rename = "remove")]
-    remove: Vec<String>,
-    metadata: HashMap<String, String>,
-    requires: HashMap<String, String>,
-    dependencies: HashMap<String, AuditDependency>,
+    ecosystem: String,
 }
 
 #[derive(Debug, Serialize)]
-struct AuditDependency {
+struct OsvQuery {
+    package: OsvPackage,
     version: String,
 }
 
-#[derive(Debug, Deserialize, Default)]
-struct AuditResponse {
-    #[serde(default)]
-    advisories: HashMap<String, Advisory>,
-    #[serde(default)]
-    metadata: AuditMetadata,
+#[derive(Debug, Serialize)]
+struct OsvBatchRequest {
+    queries: Vec<OsvQuery>,
 }
 
-#[derive(Debug, Deserialize, Default)]
-struct AuditMetadata {
-    vulnerabilities: HashMap<String, u64>,
+#[derive(Debug, Deserialize)]
+struct OsvBatchResponse {
+    #[serde(default)]
+    results: Vec<OsvResult>,
 }
 
-#[derive(Debug, Deserialize, Default)]
-struct Advisory {
-    _id: u64,
-    title: String,
-    #[serde(rename = "module_name")]
-    module_name: String,
-    severity: String,
-    _overview: String,
-    _recommendation: String,
-    url: String,
+#[derive(Debug, Deserialize)]
+struct OsvResult {
+    #[serde(default)]
+    vulns: Vec<OsvVulnerability>,
+}
+
+#[derive(Debug, Deserialize)]
+struct OsvVulnerability {
+    id: String,
+    #[serde(default)]
+    summary: String,
+    #[serde(default)]
+    details: String,
+    #[serde(default)]
+    database_specific: HashMap<String, serde_json::Value>,
 }
 
 pub fn check_vulnerabilities() -> Result<()> {
-    println!("{} running security audit...", style("🛡️").bold().blue());
+    println!("{} {} scanning dependencies via OSV.dev...", style("🦀").bold().cyan(), style("🛡️").bold().blue());
 
-    let config = config::load_config()?;
     let client = registry::get_client()?;
     let lockfile = manifest::CrabbyLock::load().unwrap_or_default();
-    let pkg_json = manifest::PackageJson::load().unwrap_or_default();
 
     if lockfile.dependencies.is_empty() {
         println!("{} No packages found in lockfile.", style("ℹ").blue());
         return Ok(());
     }
 
-    // Construct Audit Payload
-    // We treating all locked packages as direct dependencies for the audit check
-    // This allows us to check all versions we have installed.
-    let mut dependencies = HashMap::new();
-    let mut requires = HashMap::new();
+    let mut queries = Vec::new();
+    let mut name_map = Vec::new(); // To track which result belongs to which package
 
     for (name, dep) in &lockfile.dependencies {
-        dependencies.insert(name.clone(), AuditDependency {
+        queries.push(OsvQuery {
+            package: OsvPackage {
+                name: name.clone(),
+                ecosystem: "npm".to_string(),
+            },
             version: dep.version.clone(),
         });
-        requires.insert(name.clone(), dep.version.clone());
+        name_map.push((name.clone(), dep.version.clone()));
     }
 
-    let payload = AuditRequest {
-        name: pkg_json.name.clone(),
-        version: pkg_json.version.clone(),
-        install: vec![],
-        remove: vec![],
-        metadata: HashMap::new(), // npm_config_user_agent etc?
-        requires,
-        dependencies,
-    };
-    
-    // println!("Audit payload size: {} entries", payload.dependencies.len());
+    // OSV allows up to 1000 queries per batch
+    let batch_request = OsvBatchRequest { queries };
 
-    let registry_url = config.registry.trim_end_matches('/');
-    let audit_url = format!("{}/-/npm/v1/security/audits", registry_url);
-
-    let resp = client.post(&audit_url)
-        .json(&payload)
+    let resp = client.post("https://api.osv.dev/v1/querybatch")
+        .json(&batch_request)
         .send()
-        .context("Failed to contact audit endpoint")?;
+        .context("Failed to contact OSV.dev API")?;
 
     if !resp.status().is_success() {
-         println!("{} Audit request failed: {}", style("⚠️").yellow(), resp.status());
-         // Try to print body for debugging
-         // let body = resp.text()?;
-         // println!("Body: {}", body);
+         println!("{} Security audit failed: OSV API returned {}", style("⚠️").yellow(), resp.status());
          return Ok(());
     }
 
-    let report: AuditResponse = resp.json()
-        .context("Failed to parse audit response")?;
+    let batch_resp: OsvBatchResponse = resp.json()
+        .context("Failed to parse OSV response")?;
 
-    // Print Report
-    let total_vulns: u64 = report.metadata.vulnerabilities.values().sum();
+    let mut total_vulns = 0;
+    let mut found_any = false;
 
-    if total_vulns == 0 {
-        println!("\n{} No known vulnerabilities found", style("✅").bold().green());
-    } else {
-        println!("\n{} Found {} vulnerabilities", style("🚨").bold().red(), total_vulns);
-        
-        let mut sorted_advisories: Vec<&Advisory> = report.advisories.values().collect();
-        sorted_advisories.sort_by(|a, b| b.severity.cmp(&a.severity)); // TODO: Better severity sort (critical > high)
-
-        for advisory in sorted_advisories {
-            println!("\n{}", style(format!("severity: {}", advisory.severity)).bold().red());
-            println!("  Package: {}", style(&advisory.module_name).bold());
-            println!("  Title:   {}", advisory.title);
-            println!("  Path:    {}", advisory.module_name); // Simplified, we don't have full path in flat structure
-            println!("  More:    {}", style(&advisory.url).dim());
+    for (i, result) in batch_resp.results.iter().enumerate() {
+        if result.vulns.is_empty() {
+            continue;
         }
-        
-        println!("\nRun `crabby update <package>` to fix.", );
+
+        if !found_any {
+            println!("\n{}", style("Vulnerability Report:").bold().underlined());
+            found_any = true;
+        }
+
+        let (pkg_name, pkg_version) = &name_map[i];
+        total_vulns += result.vulns.len();
+
+        for vuln in &result.vulns {
+            let severity = vuln.database_specific.get("severity")
+                .and_then(|v| v.as_str())
+                .unwrap_or("UNKNOWN");
+
+            println!("\n{}", style(format!("severity: {}", severity)).bold().red());
+            println!("  Package: {}@{}", style(pkg_name).bold(), pkg_version);
+            println!("  ID:      {}", style(&vuln.id).cyan());
+            println!("  Summary: {}", if vuln.summary.is_empty() { &vuln.details } else { &vuln.summary });
+            println!("  More:    {}", style(format!("https://osv.dev/vulnerability/{}", vuln.id)).dim());
+        }
+    }
+
+    if !found_any {
+        println!("\n{} No known vulnerabilities found across {} dependencies.", style("✅").bold().green(), lockfile.dependencies.len());
+    } else {
+        println!("\n{} Found {} vulnerabilities across {} dependencies.", style("🚨").bold().red(), total_vulns, lockfile.dependencies.len());
+        println!("\nRun `crabby update <package>` to fix or research better alternatives.", );
     }
 
     Ok(())

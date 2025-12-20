@@ -1,7 +1,10 @@
 {
   "name": "my-crabby-project",
   "version": "1.0.0",
-  "scripts": {},
+  "scripts": {
+    "dev": "crabby run src/index.ts",
+    "test": "echo 'No tests yet' && exit 0"
+  },
   "dependencies": {},
   "devDependencies": {
     "@types/express": "^4.17.0",

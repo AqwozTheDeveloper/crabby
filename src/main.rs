@@ -13,11 +13,16 @@ mod global;
 mod audit;
 mod workspace;
 mod self_upgrade;
+mod ui;
+mod templates;
+mod explorer;
 
 use clap::{Parser, Subcommand};
 use console::style;
 use anyhow::Result;
 use std::path::Path;
+use std::collections::{HashMap, HashSet};
+use std::fs;
 
 const MAX_CONCURRENT_DOWNLOADS: usize = 10;
 
@@ -35,7 +40,6 @@ enum Commands {
     #[command(alias = "run")]
     Cook {
         /// The name of the script to run
-        #[arg(required_unless_present_any = ["ts", "js"])]
         script: Option<String>,
 
         /// Run a TypeScript file
@@ -52,6 +56,13 @@ enum Commands {
     },
     /// Initialize a new Crabby project
     Init,
+    /// Create a new project from a template
+    Create {
+        /// The name of the template
+        template: Option<String>,
+        /// The name of the project directory
+        name: Option<String>,
+    },
     /// Install a package from NPM registry
     #[command(visible_aliases = ["i", "add"])]
     Install {
@@ -101,6 +112,17 @@ enum Commands {
     Info {
         /// Package name
         package: String,
+    },
+    /// Explain why a package is installed
+    Why {
+        /// Package name
+        package: String,
+    },
+    /// Remove unneeded packages from node_modules
+    Prune {
+        /// Show what would be removed without actually removing
+        #[arg(long)]
+        dry_run: bool,
     },
     /// Clean node_modules and cache
     Clean {
@@ -262,6 +284,45 @@ console.log(greet("Crabby"));
             
             println!("\n{} Project initialized successfully!", style("🎉").bold().green());
         }
+        Commands::Create { template, name } => {
+            let template_name = if let Some(t) = template {
+                t.clone()
+            } else {
+                let items: Vec<String> = templates::TEMPLATES.iter()
+                    .map(|t| format!("{:<15} {}", style(t.name).bold().cyan(), style(t.description).dim()))
+                    .collect();
+                
+                if let Some(index) = ui::prompt_selection(&items, "Pick a project template")? {
+                    templates::TEMPLATES[index].name.to_string()
+                } else {
+                    return Ok(());
+                }
+            };
+
+            let project_name = if let Some(n) = name {
+                n.clone()
+            } else {
+                use std::io::{self, Write};
+                print!("\n{} Project name: ", style("❓").bold().yellow());
+                io::stdout().flush()?;
+                let mut input = String::new();
+                io::stdin().read_line(&mut input)?;
+                input.trim().to_string()
+            };
+
+            if project_name.is_empty() {
+                println!("{} Project name cannot be empty", style("❌").red());
+                return Ok(());
+            }
+
+            templates::create_project(&template_name, &project_name)?;
+            
+            println!("\n{} Project created at {}", style("🎉").bold().green(), style(&project_name).cyan());
+            println!("{} Run these commands to start cooking:", style("💡").dim());
+            println!("   cd {}", project_name);
+            println!("   crabby install");
+            println!("   crabby run dev");
+        }
         Commands::Cook { script, ts, js, listen } => {
             let node_path = node_runtime::get_node_path()?;
             let node_str = node_path.to_string_lossy();
@@ -292,19 +353,44 @@ console.log(greet("Crabby"));
                 } else {
                     // It's a package script
                     let pkg = manifest::PackageJson::load()?;
-                    if let Some(command_str) = pkg.scripts.get(script_name) {
-                         (command_str.clone(), None, false) // We don't easily know what file to watch for package scripts unless we parse them
+                    if let Some(command_str) = pkg.scripts.get(script_name.as_str()) {
+                         (command_str.clone(), None, false)
                     } else {
                         println!("{} Script '{}' not found", style("❌").red(), script_name);
                         return Ok(());
                     }
                 }
             } else {
-                 println!("{} No script specified", style("❌").red());
-                 return Ok(());
+                // Interactive Mode
+                let pkg = manifest::PackageJson::load()?;
+                if pkg.scripts.is_empty() {
+                    println!("{} No scripts found in package.json", style("❌").red());
+                    return Ok(());
+                }
+
+                let mut script_names: Vec<String> = pkg.scripts.keys().cloned().collect();
+                script_names.sort();
+
+                let items: Vec<String> = script_names.iter()
+                    .map(|name| {
+                        let cmd = pkg.scripts.get(name).unwrap();
+                        format!("{:<15} {}", style(name).bold().cyan(), style(cmd).dim())
+                    })
+                    .collect();
+
+                if let Some(index) = ui::prompt_fuzzy_selection(&items, "Pick a script to cook")? {
+                    let selected_name = &script_names[index];
+                    let command_str = pkg.scripts.get(selected_name).unwrap();
+                    (command_str.clone(), None, false)
+                } else {
+                    return Ok(());
+                }
             };
             
-            // Check if tsx is available for TypeScript files
+            // Check if tsx is available if needed
+            if cmd_template.contains("tsx ") || cmd_template.contains(".ts") {
+                tsx_utils::ensure_tsx_available()?;
+            }
             if is_typescript && !tsx_utils::ensure_tsx_available()? {
                 return Ok(());
             }
@@ -316,6 +402,7 @@ console.log(greet("Crabby"));
                 println!("{} {}", style("👀 Listening for changes...").bold().blue(), style(&cmd_template).dim());
                 
                 use notify::{Watcher, RecursiveMode};
+                use dialoguer::{theme::ColorfulTheme, Select, FuzzySelect};
                 use std::sync::mpsc::channel;
                 
                 // Initial run
@@ -409,36 +496,35 @@ console.log(greet("Crabby"));
             }
 
             if let Some(pkg_name) = package {
-                println!("{} Installing {}...", style("📦").bold().blue(), pkg_name);
+                println!("{} Installing {}...", style("📦").bold().blue(), style(pkg_name).cyan());
                 let config = config::load_config()?;
                 let registry_url = config.registry.clone();
                 
+                let mut lockfile = manifest::CrabbyLock::load().unwrap_or_default();
                 let (version, _tarball) = tokio::task::spawn_blocking({
                     let registry_url = registry_url.clone();
                     let pkg_name = pkg_name.clone();
-                    // Load lockfile to check for existing version
-                    let lockfile = manifest::CrabbyLock::load().ok();
+                    let mut lockfile_clone = lockfile.clone();
                     
                     move || {
                         let client = registry::get_client()?;
-                        package_utils::install_package(&pkg_name, &registry_url, &client, lockfile.as_ref())
+                        let res = package_utils::install_package(&pkg_name, &registry_url, &client, &mut lockfile_clone)?;
+                        Ok::<( (String, String), manifest::CrabbyLock), anyhow::Error>((res, lockfile_clone))
                     }
                 }).await??;
 
+                lockfile = _tarball; // Get updated lockfile back
+                lockfile.save()?;
+
                 let mut pkg_json = manifest::PackageJson::load()?;
                 if *save_dev {
-                    pkg_json.add_dev_dependency(pkg_name.clone(), format!("^{}", version));
+                    pkg_json.add_dev_dependency(pkg_name.clone(), format!("^{}", version.0));
                 } else {
-                    pkg_json.add_dependency(pkg_name.clone(), format!("^{}", version));
+                    pkg_json.add_dependency(pkg_name.clone(), format!("^{}", version.0));
                 }
                 pkg_json.save()?;
 
-                 // Update lockfile
-                let mut lockfile = manifest::CrabbyLock::load().unwrap_or_default();
-                lockfile.add_package(pkg_name.clone(), version.clone(), _tarball);
-                lockfile.save()?;
-
-                println!("{} Installed {} v{}", style("✅").green(), pkg_name, version);
+                println!("{} Installed {} v{}", style("✅").green(), style(pkg_name).bold(), style(&version.0).dim());
             } else {
                 // Check if this is a workspace root
                 let root_path = std::env::current_dir()?;
@@ -461,14 +547,14 @@ console.log(greet("Crabby"));
                             let original_cwd = std::env::current_dir()?;
                             std::env::set_current_dir(&ws_path)?;
                             
-                            // Load that workspace's package.json
-                            let pkg = manifest::PackageJson::load()?;
+                            let mut pkg = manifest::PackageJson::load()?;
+                            let mut lockfile = manifest::CrabbyLock::load().unwrap_or_default();
                             let all_deps = pkg.get_all_dependencies();
                             
                             if !all_deps.is_empty() {
                                 let client = registry::get_client()?;
-                                let lockfile = manifest::CrabbyLock::load().ok(); 
-                                package_utils::install_all_packages(&all_deps, &registry_url, &client, lockfile.as_ref())?;
+                                package_utils::install_all_packages(&all_deps, &registry_url, &client, &mut lockfile)?;
+                                lockfile.save()?;
                             }
                             
                             std::env::set_current_dir(original_cwd)?;
@@ -484,12 +570,14 @@ console.log(greet("Crabby"));
                      let config = config::load_config()?;
                      let registry_url = config.registry.clone();
                      
-                     tokio::task::spawn_blocking(move || {
+                     let mut lockfile = manifest::CrabbyLock::load().unwrap_or_default();
+                     let updated_lockfile = tokio::task::spawn_blocking(move || {
                         let client = registry::get_client()?;
-                        let lockfile = manifest::CrabbyLock::load().ok();
-                        package_utils::install_all_packages(&all_deps, &registry_url, &client, lockfile.as_ref())
+                        package_utils::install_all_packages(&all_deps, &registry_url, &client, &mut lockfile)?;
+                        Ok::<manifest::CrabbyLock, anyhow::Error>(lockfile)
                      }).await??;
 
+                     updated_lockfile.save()?;
                      println!("{} Done!", style("✅").bold().green());
                 }
             }
@@ -574,14 +662,15 @@ console.log(greet("Crabby"));
                 println!("{} Updating {}...", style("📦").bold().blue(), pkg_name);
                 let (version, _tarball) = update::update_package(&pkg_name, &config.registry).await?;
                 
-                // Create HTTP client and load lockfile for optimized installation
+                let mut lockfile = manifest::CrabbyLock::load().unwrap_or_default();
                 let registry_url = config.registry.clone();
                 let pkg_name_clone = pkg_name.clone();
-                let lockfile_clone = manifest::CrabbyLock::load().ok();
                 
                 let (_installed_version, _tarball) = tokio::task::spawn_blocking(move || {
                     let client = registry::get_client()?;
-                    package_utils::install_package(&pkg_name_clone, &registry_url, &client, lockfile_clone.as_ref())
+                    package_utils::install_package(&pkg_name_clone, &registry_url, &client, &mut lockfile)?;
+                    lockfile.save()?;
+                    Ok::<(String, String), anyhow::Error>(("".to_string(), "".to_string()))
                 }).await??;
                 
                 let mut pkg_json = manifest::PackageJson::load()?;
@@ -682,6 +771,92 @@ console.log(greet("Crabby"));
             
             println!("{} Clean complete!", style("🎉").bold().green());
         }
+        Commands::Why { package } => {
+            let lockfile = manifest::CrabbyLock::load()?;
+            let pkg = manifest::PackageJson::load()?;
+            
+            println!("{} Finding reason for {}...", style("🔍").dim(), style(package).bold().cyan());
+            
+            let mut found = false;
+            if pkg.dependencies.contains_key(package) {
+                println!("{} Direct dependency in {}", style("•").green(), style("package.json").dim());
+                found = true;
+            }
+            if pkg.dev_dependencies.contains_key(package) {
+                println!("{} Direct devDependency in {}", style("•").green(), style("package.json").dim());
+                found = true;
+            }
+            
+            let paths = explorer::find_dependency_paths(&lockfile, &pkg, package);
+            for path in paths {
+                println!("{} {}", style("•").green(), path.join(style(" → ").dim().to_string().as_str()));
+                found = true;
+            }
+
+            if !found {
+                println!("{} Package {} not found in dependency graph", style("❌").red(), package);
+            }
+        }
+        Commands::Prune { dry_run } => {
+            let pkg = manifest::PackageJson::load()?;
+            let lockfile = manifest::CrabbyLock::load()?;
+            
+            println!("{} Pruning unneeded dependencies...", style("🧹").bold().yellow());
+            
+            // Collect all reachable dependencies
+            let mut reachable = HashSet::new();
+            let all_deps = pkg.get_all_dependencies();
+            
+            for (name, _) in all_deps {
+                collect_reachable(&name, &lockfile, &mut reachable);
+            }
+            
+            if *dry_run {
+                println!("{} DRY RUN - No files will be removed\n", style("ℹ️").bold().blue());
+            }
+
+            let node_modules = Path::new("node_modules");
+            if !node_modules.exists() {
+                println!("{} node_modules does not exist", style("ℹ️").dim());
+                return Ok(());
+            }
+
+            let mut pruned_count = 0;
+            
+            // Helper to visit directories recursively (for scopes)
+            fn visit_dirs(dir: &Path, reachable: &HashSet<String>, base: &Path, dry_run: bool, count: &mut usize) -> Result<()> {
+                for entry in fs::read_dir(dir)? {
+                    let entry = entry?;
+                    let path = entry.path();
+                    if !path.is_dir() { continue; }
+                    
+                    let relative = path.strip_prefix(base)?;
+                    let pkg_name = relative.to_string_lossy().replace("\\", "/");
+                    
+                    if pkg_name.starts_with(".") { continue; } // Skip .bin, .cache etc
+                    
+                    if pkg_name.starts_with("@") {
+                        // It's a scope, look inside
+                        visit_dirs(&path, reachable, base, dry_run, count)?;
+                    } else if !reachable.contains(&pkg_name) {
+                        println!("{} Pruning {}", style("🗑️").red(), pkg_name);
+                        if !dry_run {
+                            fs::remove_dir_all(&path)?;
+                        }
+                        *count += 1;
+                    }
+                }
+                Ok(())
+            }
+
+            visit_dirs(node_modules, &reachable, node_modules, *dry_run, &mut pruned_count)?;
+
+            if pruned_count == 0 {
+                println!("{} No unneeded packages found", style("✅").green());
+            } else {
+                println!("\n{} {} packages", if *dry_run { "Would prune" } else { "Pruned" }, pruned_count);
+            }
+        }
     }
 
     Ok(())
@@ -757,25 +932,15 @@ async fn install_all_dependencies(registry: &str) -> Result<()> {
                 let client_for_task = Arc::clone(&client);
                 
                 let result = tokio::task::spawn_blocking(move || {
-                    // Load lockfile snapshot for read access
-                    let lock_snapshot = if Path::new("crabby.lock").exists() {
-                        manifest::CrabbyLock::load().ok()
-                    } else {
-                        None
-                    };
-                    
-                    package_utils::install_package(&name_for_task, &registry_for_task, &client_for_task, lock_snapshot.as_ref())
+                    let mut lock = lockfile.lock().unwrap();
+                    package_utils::install_package(&name_for_task, &registry_for_task, &client_for_task, &mut lock)
                 }).await;
                 
                 match result {
                     Ok(install_res) => {
                         match install_res {
-                            Ok((ver, tarball)) => {
+                            Ok((ver, _tarball)) => {
                                 println!("{} Installed {} {}", style("✅").green(), style(&name).cyan(), style(&ver).dim());
-                                // Thread-safe update of lockfile
-                                if let Ok(mut lock) = lockfile.lock() {
-                                    lock.add_package(name.clone(), ver, tarball);
-                                }
                                 Ok(name)
                             },
                             Err(e) => {
@@ -851,7 +1016,6 @@ fn print_dependency_tree(pkg: &manifest::PackageJson, _lockfile: Option<&manifes
     for (i, (name, version, is_dev)) in all_deps.iter().enumerate() {
         let is_last = i == total - 1;
         let prefix = if is_last { "└─" } else { "├─" };
-        
         let dev_mark = if *is_dev { style(" (dev)").yellow().dim() } else { style("").dim() };
         
         println!("{} {} {}{}", 
@@ -861,10 +1025,46 @@ fn print_dependency_tree(pkg: &manifest::PackageJson, _lockfile: Option<&manifes
             dev_mark
         );
         
-        // Note: CrabbyLock currently only tracks flattened dependencies, 
-        // so we don't display nested dependencies from the lockfile yet.
-        // To support full tree, we would need to parse node_modules recursively or upgrade CrabbyLock.
+        if let Some(lock) = _lockfile {
+            print_tree_recursive(name, lock, if is_last { "   " } else { "│  " }, 1)?;
+        }
     }
     
     Ok(())
+}
+
+fn print_tree_recursive(name: &str, lock: &manifest::CrabbyLock, prefix: &str, depth: usize) -> Result<()> {
+    if depth > 5 { return Ok(()); } // Limit depth to keep it readable
+
+    if let Some(dep_info) = lock.dependencies.get(name) {
+        let sub_deps: Vec<_> = dep_info.dependencies.iter().collect();
+        let total = sub_deps.len();
+        
+        for (i, (sub_name, sub_version)) in sub_deps.into_iter().enumerate() {
+            let is_last = i == total - 1;
+            let current_prefix = if is_last { "└─" } else { "├─" };
+            
+            println!("{}{} {} {}", 
+                style(prefix).dim(),
+                style(current_prefix).dim(),
+                style(sub_name).cyan(),
+                style(sub_version).dim()
+            );
+            
+            let next_prefix = format!("{}{}", prefix, if is_last { "   " } else { "│  " });
+            print_tree_recursive(sub_name, lock, &next_prefix, depth + 1)?;
+        }
+    }
+    Ok(())
+}
+
+fn collect_reachable(name: &str, lock: &manifest::CrabbyLock, reachable: &mut HashSet<String>) {
+    if reachable.contains(name) { return; }
+    reachable.insert(name.to_string());
+    
+    if let Some(dep_info) = lock.dependencies.get(name) {
+        for sub_dep in dep_info.dependencies.keys() {
+            collect_reachable(sub_dep, lock, reachable);
+        }
+    }
 }

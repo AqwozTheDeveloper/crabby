@@ -1,0 +1,38 @@
+    Checking crabby v0.2.6 (C:\Users\amesa\Desktop\crabby)
+error[E0432]: unresolved import `dialoguer::FuzzySelect`
+  --> src\ui.rs:1:47
+   |
+ 1 | use dialoguer::{theme::ColorfulTheme, Select, FuzzySelect};
+   |                                               ^^^^^^^^^^^ no `FuzzySelect` in the root
+   |
+note: found an item that was configured out
+  --> C:\Users\amesa\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\dialoguer-0.11.0\src\lib.rs:47:32
+   |
+46 | #[cfg(feature = "fuzzy-select")]
+   |       ------------------------ the item is gated behind the `fuzzy-select` feature
+47 | pub use prompts::fuzzy_select::FuzzySelect;
+   |                                ^^^^^^^^^^^
+
+error[E0277]: the trait bound `std::string::String: Borrow<&std::string::String>` is not satisfied
+   --> src\main.rs:295:64
+    |
+295 |                     if let Some(command_str) = pkg.scripts.get(&script_name) {
+    |                                                            --- ^^^^^^^^^^^^ the trait `Borrow<&std::string::String>` is not implemented for `std::string::String`
+    |                                                            |
+    |                                                            required by a bound introduced by this call
+    |
+    = help: the trait `Borrow<&std::string::String>` is not implemented for `std::string::String`
+            but trait `Borrow<str>` is implemented for it
+    = help: for that trait implementation, expected `str`, found `&std::string::String`
+note: required by a bound in `HashMap::<K, V, S>::get`
+   --> C:\Users\amesa\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib/rustlib/src/rust\library\std\src\collections\hash\map.rs:911:12
+    |
+909 |     pub fn get<Q: ?Sized>(&self, k: &Q) -> Option<&V>
+    |            --- required by a bound in this associated function
+910 |     where
+911 |         K: Borrow<Q>,
+    |            ^^^^^^^^^ required by this bound in `HashMap::<K, V, S>::get`
+
+Some errors have detailed explanations: E0277, E0432.
+For more information about an error, try `rustc --explain E0277`.
+error: could not compile `crabby` (bin "crabby") due to 2 previous errors

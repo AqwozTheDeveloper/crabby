@@ -1,0 +1,187 @@
+﻿cargo :     Checking 
+crabby v0.2.6 (C:\Use
+rs\amesa\Desktop\crab
+by)
+At line:1 char:1
++ cargo check 2>&1 | 
+select -first 100 | O
+ut-File -Encoding UTF
+8 check4 ...
++ ~~~~~~~~~~~~~~~~
+    + CategoryInfo   
+           : NotSpe  
+  cified: (    Che   
+ cking cr...Deskt    
+op\crabby):Strin    g
+) [], RemoteExc    ep
+tion
+    + FullyQualified 
+   ErrorId : Native  
+  CommandError
+ 
+warning: unused impor
+t: `Serialize`
+ --> src\package_util
+s.rs:3:26
+  |
+3 | use serde::{Deser
+ialize, Serialize};
+  |                  
+        ^^^^^^^^^
+  |
+  = note: `#[warn(unu
+sed_imports)]` (part 
+of `#[warn(unused)]`)
+ on by default
+
+warning: unused impor
+ts: `manifest`, `regi
+stry`, and `tsx_utils
+`
+  --> src\package_uti
+ls.rs:10:13
+   |
+10 | use crate::{mani
+fest, runner, registr
+y, tsx_utils};
+   |             ^^^^
+^^^^          ^^^^^^^
+^  ^^^^^^^^^
+
+warning: unused impor
+ts: `global` and `run
+ner`
+ --> src\global.rs:5:
+38
+  |
+5 | use crate::{manif
+est, package_utils, r
+unner, registry, conf
+ig, global};
+  |                  
+                    ^
+^^^^^                
+    ^^^^^^
+
+warning: unused impor
+t: `Context`
+ --> src\templates.rs
+:1:22
+  |
+1 | use anyhow::{Resu
+lt, Context};
+  |                  
+    ^^^^^^^
+
+warning: unused impor
+t: `console::style`
+ --> src\explorer.rs:
+2:5
+  |
+2 | use console::styl
+e;
+  |     ^^^^^^^^^^^^^
+^
+
+warning: unused impor
+t: `std::path::Path`
+  --> src\main.rs:23:
+5
+   |
+23 | use std::path::P
+ath;
+   |     ^^^^^^^^^^^^
+^^^
+
+warning: unused impor
+ts: `FuzzySelect`, `S
+elect`, and `theme::C
+olorfulTheme`
+   --> src\main.rs:39
+7:33
+    |
+397 |                
+ use dialoguer::{them
+e::ColorfulTheme, Sel
+ect, FuzzySelect};
+    |                
+                 ^^^^
+^^^^^^^^^^^^^^^^  ^^^
+^^^  ^^^^^^^^^^^
+
+error[E0609]: no fiel
+d `0` on type `std::s
+tring::String`
+  --> src\global.rs:7
+9:91
+   |
+79 |             prin
+tln!("{} Installed {}
+ v{} globally", style
+("Ô£à").green(), pack
+age, version.0);
+   |                 
+                     
+                     
+                     
+            ^ unknown
+ field
+
+warning: unused varia
+ble: `install_dir`
+   --> src\package_ut
+ils.rs:179:52
+    |
+179 | fn link_binarie
+s(pkg_name: &str, bin
+: &PackageBin, instal
+l_dir: &Path) -> Resu
+lt<()> {
+    |                
+                     
+               ^^^^^^
+^^^^^ help: if this i
+s intentional, prefix
+ it with an underscor
+e: `_install_dir`
+    |
+    = note: `#[warn(u
+nused_variables)]` (p
+art of `#[warn(unused
+)]`) on by default
+
+warning: variable doe
+s not need to be muta
+ble
+   --> src\main.rs:54
+2:33
+    |
+542 | ...            
+       let mut pkg = 
+manifest::PackageJson
+::load()?;
+    |                
+           ----^^^
+    |                
+           |
+    |                
+           help: remo
+ve this `mut`
+    |
+    = note: `#[warn(u
+nused_mut)]` (part of
+ `#[warn(unused)]`) o
+n by default
+
+For more information 
+about this error, try
+ `rustc --explain E06
+09`.
+warning: `crabby` (bi
+n "crabby") generated
+ 9 warnings
+error: could not comp
+ile `crabby` (bin "cr
+abby") due to 1 previ
+ous error; 9 warnings
+ emitted

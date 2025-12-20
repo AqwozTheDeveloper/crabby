@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use console::style;
 use std::fs;
 use std::path::{Path, PathBuf};
-use crate::{package_utils, registry, config};
+use crate::{manifest, package_utils, runner, registry, config, global};
 
 /// Get global installation directory (~/.crabby/global)
 pub fn get_global_dir() -> Result<PathBuf> {
@@ -59,13 +59,15 @@ pub fn install_global(package: &str) -> Result<()> {
     std::env::set_current_dir(&global_dir)?;
     
     // Install package
-    // Note: install_package returns (version, tarball_path)
-    let result = package_utils::install_package(package, &config.registry, &client, None);
+    let mut lockfile = manifest::CrabbyLock::load().unwrap_or_default();
+    let result = package_utils::install_package(package, &config.registry, &client, &mut lockfile);
+    if result.is_ok() {
+        let _ = lockfile.save();
+    }
     
     // Restore CWD
     // We attempt to restore even if install failed, but trigger error if restore fails methods
     let restore_res = std::env::set_current_dir(original_cwd);
-    
     match result {
         Ok((version, _)) => {
             restore_res?;

@@ -80,6 +80,8 @@ pub struct CrabbyLock {
 pub struct LockDependency {
     pub version: String,
     pub tarball: String,
+    #[serde(default)]
+    pub dependencies: HashMap<String, String>,
 }
 
 impl CrabbyLock {
@@ -106,8 +108,8 @@ impl CrabbyLock {
         Ok(())
     }
 
-    pub fn add_package(&mut self, name: String, version: String, tarball: String) {
-        self.dependencies.insert(name, LockDependency { version, tarball });
+    pub fn add_package(&mut self, name: String, version: String, tarball: String, dependencies: HashMap<String, String>) {
+        self.dependencies.insert(name, LockDependency { version, tarball, dependencies });
     }
 }
 

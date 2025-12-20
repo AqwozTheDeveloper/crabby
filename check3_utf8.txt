@@ -1,0 +1,322 @@
+﻿cargo :     Checking 
+crabby v0.2.6 (C:\Use
+rs\amesa\Desktop\crab
+by)
+At line:1 char:1
++ cargo check 2>&1 | 
+select -first 100 | O
+ut-File -Encoding UTF
+8 check3 ...
++ ~~~~~~~~~~~~~~~~
+    + CategoryInfo   
+           : NotSpe  
+  cified: (    Che   
+ cking cr...Deskt    
+op\crabby):Strin    g
+) [], RemoteExc    ep
+tion
+    + FullyQualified 
+   ErrorId : Native  
+  CommandError
+ 
+error[E0433]: failed 
+to resolve: use of un
+resolved module or un
+linked crate `package
+_utils`
+  --> src\global.rs:6
+3:18
+   |
+63 |     let result =
+ package_utils::insta
+ll_package(package, &
+config.registry, &cli
+ent, &mut lockfile);
+   |                 
+ ^^^^^^^^^^^^^ use of
+ unresolved module or
+ unlinked crate `pack
+age_utils`
+   |
+help: to make use of 
+source file src\packa
+ge_utils.rs, use `mod
+ package_utils` in th
+is file to declare th
+e module
+  --> src\main.rs:1:1
+   |
+ 1 + mod package_util
+s;
+   |
+help: consider import
+ing this module
+   |
+ 1 + use crate::packa
+ge_utils;
+   |
+
+warning: unused impor
+t: `Serialize`
+ --> src\package_util
+s.rs:3:26
+  |
+3 | use serde::{Deser
+ialize, Serialize};
+  |                  
+        ^^^^^^^^^
+  |
+  = note: `#[warn(unu
+sed_imports)]` (part 
+of `#[warn(unused)]`)
+ on by default
+
+warning: unused impor
+ts: `manifest`, `regi
+stry`, and `tsx_utils
+`
+  --> src\package_uti
+ls.rs:10:13
+   |
+10 | use crate::{mani
+fest, runner, registr
+y, tsx_utils};
+   |             ^^^^
+^^^^          ^^^^^^^
+^  ^^^^^^^^^
+
+warning: unused impor
+ts: `global` and `run
+ner`
+ --> src\global.rs:5:
+23
+  |
+5 | use crate::{manif
+est, runner, registry
+, config, global};
+  |                  
+     ^^^^^^          
+          ^^^^^^
+
+warning: unused impor
+t: `Context`
+ --> src\templates.rs
+:1:22
+  |
+1 | use anyhow::{Resu
+lt, Context};
+  |                  
+    ^^^^^^^
+
+warning: unused impor
+t: `console::style`
+ --> src\explorer.rs:
+2:5
+  |
+2 | use console::styl
+e;
+  |     ^^^^^^^^^^^^^
+^
+
+warning: unused impor
+t: `std::path::Path`
+  --> src\main.rs:23:
+5
+   |
+23 | use std::path::P
+ath;
+   |     ^^^^^^^^^^^^
+^^^
+
+warning: unused impor
+ts: `FuzzySelect`, `S
+elect`, and `theme::C
+olorfulTheme`
+   --> src\main.rs:39
+7:33
+    |
+397 |                
+ use dialoguer::{them
+e::ColorfulTheme, Sel
+ect, FuzzySelect};
+    |                
+                 ^^^^
+^^^^^^^^^^^^^^^^  ^^^
+^^^  ^^^^^^^^^^^
+
+error[E0277]: `(std::
+string::String, std::
+string::String)` does
+n't implement `std::f
+mt::Display`
+   --> src\main.rs:51
+3:82
+    |
+513 |                
+     pkg_json.add_dev
+_dependency(pkg_name.
+clone(), format!("^{}
+", version));
+    |                
+                     
+                     
+                   --
+   ^^^^^^^ `(std::str
+ing::String, std::str
+ing::String)` cannot 
+be formatted with the
+ default formatter
+    |                
+                     
+                     
+                   |
+    |                
+                     
+                     
+                   re
+quired by this format
+ting parameter
+    |
+    = help: the trait
+ `std::fmt::Display` 
+is not implemented fo
+r `(std::string::Stri
+ng, std::string::Stri
+ng)`
+    = note: in format
+ strings you may be a
+ble to use `{:?}` (or
+ {:#?} for pretty-pri
+nt) instead
+    = note: this erro
+r originates in the m
+acro `$crate::__expor
+t::format_args` which
+ comes from the expan
+sion of the macro `fo
+rmat` (in Nightly bui
+lds, run with -Z macr
+o-backtrace for more 
+info)
+
+error[E0277]: `(std::
+string::String, std::
+string::String)` does
+n't implement `std::f
+mt::Display`
+   --> src\main.rs:51
+5:78
+    |
+515 |                
+     pkg_json.add_dep
+endency(pkg_name.clon
+e(), format!("^{}", v
+ersion));
+    |                
+                     
+                     
+               --   ^
+^^^^^^ `(std::string:
+:String, std::string:
+:String)` cannot be f
+ormatted with the def
+ault formatter
+    |                
+                     
+                     
+               |
+    |                
+                     
+                     
+               requir
+ed by this formatting
+ parameter
+    |
+    = help: the trait
+ `std::fmt::Display` 
+is not implemented fo
+r `(std::string::Stri
+ng, std::string::Stri
+ng)`
+    = note: in format
+ strings you may be a
+ble to use `{:?}` (or
+ {:#?} for pretty-pri
+nt) instead
+    = note: this erro
+r originates in the m
+acro `$crate::__expor
+t::format_args` which
+ comes from the expan
+sion of the macro `fo
+rmat` (in Nightly bui
+lds, run with -Z macr
+o-backtrace for more 
+info)
+
+error[E0277]: `(std::
+string::String, std::
+string::String)` does
+n't implement `std::f
+mt::Display`
+   --> src\main.rs:51
+9:93
+    |
+519 |                
+ println!("{} Install
+ed {} v{}", style("Ô£
+à").green(), style(pk
+g_name).bold(), style
+(&version).dim());
+    |                
+                     
+       -- required by
+ this formatting para
+meter          ^^^^^^
+^^^^^^^^^^^^^^^ `(std
+::string::String, std
+::string::String)` ca
+nnot be formatted wit
+h the default formatt
+er
+    |
+    = help: the trait
+ `std::fmt::Display` 
+is not implemented fo
+r `(std::string::Stri
+ng, std::string::Stri
+ng)`
+    = note: in format
+ strings you may be a
+ble to use `{:?}` (or
+ {:#?} for pretty-pri
+nt) instead
+    = help: the trait
+ `std::fmt::Display` 
+is implemented for `S
+tyledObject<D>`
+    = note: required 
+for `&(std::string::S
+tring, std::string::S
+tring)` to implement 
+`std::fmt::Display`
+    = note: 1 redunda
+nt requirement hidden
+    = note: required 
+for `StyledObject<&(s
+td::string::String, s
+td::string::String)>`
+ to implement `std::f
+mt::Display`
+    = note: this erro
+r originates in the m
+acro `$crate::format_
+args_nl` which comes 
+from the expansion of
+ the macro `println` 
+(in Nightly builds, r
+un with -Z macro-back
+trace for more info)
+
+warning: unused varia
+ble: `install_dir`
