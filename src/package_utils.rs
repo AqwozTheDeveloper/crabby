@@ -3,7 +3,7 @@ use anyhow::{Context, Result};
 use std::fs;
 use flate2::read::GzDecoder;
 use tar::Archive;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::collections::{HashMap, HashSet};
 use console::style;
 use crate::runner;
@@ -158,11 +158,18 @@ fn install_package_recursive(name: &str, registry_url: &str, version_req: Option
     let pkg_json_path = install_dir.join("package.json");
     if pkg_json_path.exists() {
         let content = fs::read_to_string(&pkg_json_path)?;
-        let pkg_json: InstalledPackageJson = serde_json::from_str(&content).unwrap_or(InstalledPackageJson { 
-            dependencies: HashMap::new(), 
-            scripts: HashMap::new(),
-            bin: PackageBin::None 
-        });
+        let cleaned = crate::manifest::clean_json_content(content);
+        let pkg_json: InstalledPackageJson = match serde_json::from_str(&cleaned) {
+            Ok(p) => p,
+            Err(e) => {
+                eprintln!("Warning: Failed to parse package.json for {}: {}", name, e);
+                InstalledPackageJson { 
+                    dependencies: HashMap::new(), 
+                    scripts: HashMap::new(),
+                    bin: PackageBin::None 
+                }
+            }
+        };
 
         // Link Binaries
         link_binaries(name, &pkg_json.bin, &install_dir)?;

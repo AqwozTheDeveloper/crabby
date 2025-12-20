@@ -90,31 +90,38 @@ async fn perform_upgrade() -> Result<()> {
             .context("Failed to run 'git clone'. Ensure Git is installed.")?;
             
         if !status.success() {
-            bail!("Git clone failed");
+            bail!("Git clone failed. Please check your internet connection.");
         }
     } else {
-        println!("{} Pulling latest changes...", style("📂").bold().blue());
+        println!("{} Updating source code...", style("📂").bold().blue());
+        
+        // Reset local changes if any, to ensure clean pull
+        let _ = Command::new("git")
+            .args(&["fetch", "--all"])
+            .current_dir(&source_dir)
+            .status();
+            
         let status = Command::new("git")
-            .args(&["pull"])
+            .args(&["reset", "--hard", "origin/main"])
             .current_dir(&source_dir)
             .status()
-            .context("Failed to run 'git pull'.")?;
+            .context("Failed to run 'git reset'.")?;
             
         if !status.success() {
-            bail!("Git pull failed");
+            bail!("Failed to update source code via git reset.");
         }
     }
     
-    println!("{} Rebuilding Crabby...", style("🔨").bold().yellow());
+    println!("{} Rebuilding Crabby (this may take a minute)...", style("🔨").bold().yellow());
     
     let status = Command::new("cargo")
         .args(&["build", "--release"])
         .current_dir(&source_dir)
         .status()
-        .context("Failed to run 'cargo build'. Ensure Rust is installed.")?;
+        .context("Failed to run 'cargo build'. Ensure Rust is installed (https://rustup.rs).")?;
         
     if !status.success() {
-        bail!("Build failed");
+        bail!("Build failed. There might be a compilation error in the latest version.");
     }
     
     println!("{} Installing new binary...", style("📦").bold().magenta());
@@ -128,7 +135,7 @@ async fn perform_upgrade() -> Result<()> {
     let source_path = source_dir.join("target").join("release").join(exe_name);
     
     if !source_path.exists() {
-        bail!("Source binary not found at {:?}", source_path);
+        bail!("Source binary not found at {:?}. Build might have skipped the release target.", source_path);
     }
     
     std::fs::create_dir_all(&bin_dir)?;
@@ -141,14 +148,14 @@ async fn perform_upgrade() -> Result<()> {
             if old_path.exists() {
                 let _ = std::fs::remove_file(&old_path);
             }
-            std::fs::rename(&target_path, &old_path).context("Failed to rename existing binary")?;
+            std::fs::rename(&target_path, &old_path).context("Failed to swap existing binary. Ensure Crabby is not running in another window.")?;
         }
     }
     
-    std::fs::copy(&source_path, &target_path).context("Failed to copy new binary to installation directory")?;
+    std::fs::copy(&source_path, &target_path).context("Failed to copy new binary to installation directory.")?;
     
-    println!("\n{} Crabby upgraded successfully to the latest version!", style("🎉").bold().green());
-    println!("{} You may need to restart your terminal.", style("💡").dim());
+    println!("\n{} Crabby upgraded successfully to v{}!", style("🎉").bold().green(), fetch_latest_version().await.unwrap_or_default());
+    println!("{} Run {} to verify the new version.", style("💡").dim(), style("crabby --version").cyan());
     
     Ok(())
 }

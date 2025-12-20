@@ -4,6 +4,14 @@ use std::fs;
 use anyhow::{Context, Result};
 use std::path::Path;
 
+pub fn clean_json_content(content: String) -> String {
+    let mut cleaned = content;
+    if cleaned.starts_with('\u{FEFF}') {
+        cleaned = cleaned.trim_start_matches('\u{FEFF}').to_string();
+    }
+    cleaned.trim().to_string()
+}
+
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct PackageJson {
     pub name: String,
@@ -23,23 +31,16 @@ impl PackageJson {
         if !Path::new("package.json").exists() {
            return Ok(Self::default());
         }
-        let mut content = fs::read_to_string("package.json")?;
-        
-        // Strip UTF-8 BOM if present (fixes PowerShell Out-File issue)
-        // Strip UTF-8 BOM if present (fixes PowerShell Out-File issue)
-        // Also clean up any leading/trailing whitespace that might come from wacky editors
-        if content.starts_with('\u{FEFF}') {
-            content = content.trim_start_matches('\u{FEFF}').to_string();
-        }
-        let content = content.trim();
+        let content = fs::read_to_string("package.json")?;
+        let cleaned = clean_json_content(content);
         
         // Debug
-        // println!("DEBUG: Loaded package.json: '{}'", content);
+        // println!("DEBUG: Loaded package.json: '{}'", cleaned);
         
-        let pkg: PackageJson = match serde_json::from_str(content) {
+        let pkg: PackageJson = match serde_json::from_str(&cleaned) {
             Ok(p) => p,
             Err(e) => {
-                 return Err(anyhow::anyhow!("Failed to parse package.json: {} (Content: '{}')", e, content));
+                 return Err(anyhow::anyhow!("Failed to parse package.json: {} (Content: '{}')", e, cleaned));
             }
         };
         Ok(pkg)
@@ -87,7 +88,15 @@ impl CrabbyLock {
             return Ok(Self::default());
         }
         let content = fs::read_to_string("crabby.lock")?;
-        let lock: CrabbyLock = serde_json::from_str(&content)?;
+        let cleaned = clean_json_content(content);
+        let lock: CrabbyLock = match serde_json::from_str(&cleaned) {
+            Ok(p) => p,
+            Err(e) => {
+                // Return default on error but maybe log?
+                eprintln!("Warning: Failed to parse crabby.lock, returning default: {}", e);
+                CrabbyLock::default()
+            }
+        };
         Ok(lock)
     }
 
