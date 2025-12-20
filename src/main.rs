@@ -29,7 +29,6 @@ struct Cli {
     #[command(subcommand)]
     command: Commands,
 }
-
 #[derive(Subcommand)]
 enum Commands {
     /// Cook (run) a script defined in package.json or a file directly
@@ -269,16 +268,24 @@ console.log(greet("Crabby"));
             
             // Determine command to run and file to watch
             let (cmd_template, file_to_watch, is_typescript) = if let Some(ts_file) = ts {
-                let tsx_path = tsx_utils::get_tsx_path().unwrap_or_default();
-                (format!("node \"{}\" {}", tsx_path.to_string_lossy(), ts_file), Some(ts_file.clone()), true)
+                let cmd = match tsx_utils::get_tsx_command() {
+                    Ok(tsx_utils::TsxCommand::NodeMjs(p)) => format!("node \"{}\" {}", p.to_string_lossy(), ts_file),
+                    Ok(tsx_utils::TsxCommand::Executable(p)) => format!("\"{}\" {}", p.to_string_lossy(), ts_file),
+                    Err(_) => format!("node node_modules/tsx/dist/cli.mjs {}", ts_file),
+                };
+                (cmd, Some(ts_file.clone()), true)
             } else if let Some(js_file) = js {
                 (format!("{} {}", node_str, js_file), Some(js_file.clone()), false)
             } else if let Some(script_name) = script {
                 let path = std::path::Path::new(&script_name);
                 if path.exists() && (script_name.ends_with(".js") || script_name.ends_with(".ts")) {
                     if script_name.ends_with(".ts") {
-                        let tsx_path = tsx_utils::get_tsx_path().unwrap_or_default();
-                        (format!("node \"{}\" {}", tsx_path.to_string_lossy(), script_name), Some(script_name.clone()), true)
+                        let cmd = match tsx_utils::get_tsx_command() {
+                            Ok(tsx_utils::TsxCommand::NodeMjs(p)) => format!("node \"{}\" {}", p.to_string_lossy(), script_name),
+                            Ok(tsx_utils::TsxCommand::Executable(p)) => format!("\"{}\" {}", p.to_string_lossy(), script_name),
+                            Err(_) => format!("node node_modules/tsx/dist/cli.mjs {}", script_name),
+                        };
+                        (cmd, Some(script_name.clone()), true)
                     } else {
                          (format!("{} {}", node_str, script_name), Some(script_name.clone()), false)
                     }
@@ -680,6 +687,12 @@ console.log(greet("Crabby"));
     Ok(())
 }
 
+// Helper removed as it's unused and we use hashing directly in package_utils
+/*
+fn calculate_checksum(_file_path: &Path) -> Result<String> {
+    Ok("".to_string())
+}
+*/
 fn run_package_script(script_name: &str) -> Result<()> {
     let pkg = manifest::PackageJson::load()?;
     if let Some(command_str) = pkg.scripts.get(script_name) {

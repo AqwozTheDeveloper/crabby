@@ -36,13 +36,13 @@ struct AuditMetadata {
 
 #[derive(Debug, Deserialize, Default)]
 struct Advisory {
-    id: u64,
+    _id: u64,
     title: String,
     #[serde(rename = "module_name")]
     module_name: String,
     severity: String,
-    overview: String,
-    recommendation: String,
+    _overview: String,
+    _recommendation: String,
     url: String,
 }
 

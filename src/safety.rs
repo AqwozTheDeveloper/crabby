@@ -34,6 +34,8 @@ pub fn verify_checksum(file_path: &Path, expected_checksum: Option<&str>) -> Res
 }
 
 /// Calculate SHA-1 checksum of a file (npm registry format)
+// Helper removed as it's unused and we use hashing directly in package_utils
+/*
 pub fn calculate_checksum(file_path: &Path) -> Result<String> {
     let mut file = File::open(file_path)
         .context("Failed to open file for checksum calculation")?;
