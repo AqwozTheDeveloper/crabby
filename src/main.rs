@@ -66,8 +66,9 @@ enum Commands {
     /// Install a package from NPM registry
     #[command(visible_aliases = ["i", "add"])]
     Install {
-        /// The name of the package to install (installs all if not specified)
-        package: Option<String>,
+        /// The names of the packages to install (installs all if not specified)
+        #[arg(num_args = 0..)]
+        packages: Vec<String>,
         
         /// Install globally (system-wide, accessible everywhere)
         #[arg(long, short = 'g', alias = "to-root")]
@@ -478,53 +479,59 @@ console.log(greet("Crabby"));
         Commands::Test => {
             run_package_script("test")?;
         }
-        Commands::Install { package, global, save_dev } => {
+        Commands::Install { packages, global, save_dev } => {
             if *global {
-                if let Some(pkg) = package {
-                    match global::install_global(pkg) {
+                if packages.is_empty() {
+                    println!("{} Please specify one or more packages to install globally", style("⚠️").yellow());
+                    return Ok(());
+                }
+
+                for pkg_name in packages {
+                    println!("{} Installing {} globally...", style("🌍").bold().blue(), style(pkg_name).cyan());
+                    match global::install_global(pkg_name) {
                         Ok(_) => {
                             let bin_dir = global::get_global_bin_dir()?;
-                            println!("\n{} Global installation complete!", style("✨").bold().green());
-                            println!("   Ensure {} is in your PATH", style(bin_dir.display()).cyan());
+                            println!("   {} Global installation complete!", style("✨").bold().green());
+                            println!("   {} Ensure {} is in your PATH", style("💡").dim(), style(bin_dir.display()).cyan());
                         }
-                        Err(e) => println!("{} Global install failed: {}", style("❌").red(), e),
+                        Err(e) => println!("{} Global install failed for {}: {}", style("❌").red(), pkg_name, e),
                     }
-                } else {
-                    println!("{} Please specify a package to install globally", style("⚠️").yellow());
                 }
                 return Ok(());
             }
 
-            if let Some(pkg_name) = package {
-                println!("{} Installing {}...", style("📦").bold().blue(), style(pkg_name).cyan());
+            if !packages.is_empty() {
+                let mut lockfile = manifest::CrabbyLock::load().unwrap_or_default();
                 let config = config::load_config()?;
                 let registry_url = config.registry.clone();
-                
-                let mut lockfile = manifest::CrabbyLock::load().unwrap_or_default();
-                let (version, _tarball) = tokio::task::spawn_blocking({
-                    let registry_url = registry_url.clone();
-                    let pkg_name = pkg_name.clone();
-                    let mut lockfile_clone = lockfile.clone();
-                    
-                    move || {
-                        let client = registry::get_client()?;
-                        let res = package_utils::install_package(&pkg_name, &registry_url, &client, &mut lockfile_clone)?;
-                        Ok::<( (String, String), manifest::CrabbyLock), anyhow::Error>((res, lockfile_clone))
-                    }
-                }).await??;
-
-                lockfile = _tarball; // Get updated lockfile back
-                lockfile.save()?;
-
                 let mut pkg_json = manifest::PackageJson::load()?;
-                if *save_dev {
-                    pkg_json.add_dev_dependency(pkg_name.clone(), format!("^{}", version.0));
-                } else {
-                    pkg_json.add_dependency(pkg_name.clone(), format!("^{}", version.0));
-                }
-                pkg_json.save()?;
+                
+                for pkg_name in packages {
+                    println!("{} Installing {}...", style("📦").bold().blue(), style(pkg_name).cyan());
+                    
+                    let pkg_name_clone = pkg_name.clone();
+                    let registry_url_clone = registry_url.clone();
+                    let mut lockfile_clone = lockfile.clone();
 
-                println!("{} Installed {} v{}", style("✅").green(), style(pkg_name).bold(), style(&version.0).dim());
+                    let (version, updated_lock) = tokio::task::spawn_blocking(move || {
+                        let client = registry::get_client()?;
+                        let res = package_utils::install_package(&pkg_name_clone, &registry_url_clone, &client, &mut lockfile_clone)?;
+                        Ok::<( (String, String), manifest::CrabbyLock), anyhow::Error>((res, lockfile_clone))
+                    }).await??;
+
+                    lockfile = updated_lock;
+                    
+                    if *save_dev {
+                        pkg_json.add_dev_dependency(pkg_name.clone(), format!("^{}", version.0));
+                    } else {
+                        pkg_json.add_dependency(pkg_name.clone(), format!("^{}", version.0));
+                    }
+                    
+                    println!("{} Installed {} v{}", style("✅").green(), style(pkg_name).bold(), style(&version.0).dim());
+                }
+                
+                lockfile.save()?;
+                pkg_json.save()?;
             } else {
                 // Check if this is a workspace root
                 let root_path = std::env::current_dir()?;
