@@ -1,0 +1,103 @@
+    Checking crabby v0.2.6 (C:\Users\amesa\Desktop\crabby)
+error[E0433]: failed to resolve: could not find `TsxCommand` in `tsx_utils`
+   --> src\main.rs:272:35
+    |
+272 |                     Ok(tsx_utils::TsxCommand::NodeMjs(p)) => format!("node \"{}\" {}", p.to_string_lossy(), ts_file),
+    |                                   ^^^^^^^^^^ could not find `TsxCommand` in `tsx_utils`
+
+error[E0433]: failed to resolve: could not find `TsxCommand` in `tsx_utils`
+   --> src\main.rs:273:35
+    |
+273 |                     Ok(tsx_utils::TsxCommand::Executable(p)) => format!("\"{}\" {}", p.to_string_lossy(), ts_file),
+    |                                   ^^^^^^^^^^ could not find `TsxCommand` in `tsx_utils`
+
+error[E0433]: failed to resolve: could not find `TsxCommand` in `tsx_utils`
+   --> src\main.rs:284:43
+    |
+284 | ...                   Ok(tsx_utils::TsxCommand::NodeMjs(p)) => format!("node \"{}\" {}", p.to_string_lossy(), script_name),
+    |                                     ^^^^^^^^^^ could not find `TsxCommand` in `tsx_utils`
+
+error[E0433]: failed to resolve: could not find `TsxCommand` in `tsx_utils`
+   --> src\main.rs:285:43
+    |
+285 | ...                   Ok(tsx_utils::TsxCommand::Executable(p)) => format!("\"{}\" {}", p.to_string_lossy(), script_name),
+    |                                     ^^^^^^^^^^ could not find `TsxCommand` in `tsx_utils`
+
+error[E0425]: cannot find function `get_tsx_command` in module `tsx_utils`
+   --> src\main.rs:271:44
+    |
+271 |                 let cmd = match tsx_utils::get_tsx_command() {
+    |                                            ^^^^^^^^^^^^^^^ not found in `tsx_utils`
+
+error[E0425]: cannot find function `get_tsx_command` in module `tsx_utils`
+   --> src\main.rs:283:52
+    |
+283 |                         let cmd = match tsx_utils::get_tsx_command() {
+    |                                                    ^^^^^^^^^^^^^^^ not found in `tsx_utils`
+
+warning: unused imports: `ProgressBar` and `ProgressStyle`
+ --> src\runner.rs:4:17
+  |
+4 | use indicatif::{ProgressBar, ProgressStyle};
+  |                 ^^^^^^^^^^^  ^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `std::path::PathBuf`
+ --> src\runner.rs:7:5
+  |
+7 | use std::path::PathBuf;
+  |     ^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `Context`
+ --> src\tsx_utils.rs:1:22
+  |
+1 | use anyhow::{Result, Context};
+  |                      ^^^^^^^
+
+warning: unused import: `Context`
+ --> src\search.rs:1:14
+  |
+1 | use anyhow::{Context, Result};
+  |              ^^^^^^^
+
+warning: unused import: `Result as NotifyResult`
+   --> src\main.rs:318:54
+    |
+318 |                 use notify::{Watcher, RecursiveMode, Result as NotifyResult};
+    |                                                      ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `colored::Colorize`
+ --> src\update.rs:2:5
+  |
+2 | use colored::Colorize;
+  |     ^^^^^^^^^^^^^^^^^
+
+warning: unused variable: `source_path`
+   --> src\package_utils.rs:221:13
+    |
+221 |         let source_path = install_dir.join(&file_path);
+    |             ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_source_path`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+  --> src\runner.rs:27:9
+   |
+27 |     let mut path_env = env::var_os("PATH").unwrap_or_default();
+   |         ----^^^^^^^^
+   |         |
+   |         help: remove this `mut`
+   |
+   = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `version`
+  --> src\registry.rs:85:41
+   |
+85 | pub fn download_and_extract(name: &str, version: &str, tarball_url: &str) -> Result<()> {
+   |                                         ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_version`
+
+Some errors have detailed explanations: E0425, E0433.
+For more information about an error, try `rustc --explain E0425`.
+warning: `crabby` (bin "crabby") generated 9 warnings
+error: could not compile `crabby` (bin "crabby") due to 6 previous errors; 9 warnings emitted

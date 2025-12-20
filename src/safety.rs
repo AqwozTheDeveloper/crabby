@@ -33,27 +33,6 @@ pub fn verify_checksum(file_path: &Path, expected_checksum: Option<&str>) -> Res
     Ok(actual == expected)
 }
 
-/// Calculate SHA-1 checksum of a file (npm registry format)
-// Helper removed as it's unused and we use hashing directly in package_utils
-/*
-pub fn calculate_checksum(file_path: &Path) -> Result<String> {
-    let mut file = File::open(file_path)
-        .context("Failed to open file for checksum calculation")?;
-    
-    let mut hasher = Sha1::new();
-    let mut buffer = [0; 8192];
-    
-    loop {
-        let bytes_read = file.read(&mut buffer)?;
-        if bytes_read == 0 {
-            break;
-        }
-        hasher.update(&buffer[..bytes_read]);
-    }
-    
-    let result = hasher.finalize();
-    Ok(format!("{:x}", result))
-}
 
 /// Create a backup of a file or directory
 pub fn create_backup(path: &Path) -> Result<std::path::PathBuf> {
@@ -137,18 +116,6 @@ pub fn validate_lockfile(lockfile: &crate::manifest::CrabbyLock) -> Result<()> {
 mod tests {
     use super::*;
     use std::io::Write;
-    
-    #[test]
-    fn test_checksum_calculation() {
-        let temp_file = std::env::temp_dir().join("test_checksum.txt");
-        let mut file = File::create(&temp_file).unwrap();
-        file.write_all(b"Hello, World!").unwrap();
-        
-        let checksum = calculate_checksum(&temp_file).unwrap();
-        assert!(!checksum.is_empty());
-        
-        std::fs::remove_file(temp_file).ok();
-    }
     
     #[test]
     fn test_validate_package_json() {

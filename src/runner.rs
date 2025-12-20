@@ -1,10 +1,8 @@
-use std::process::{Command, Stdio};
+use std::process::{Command, Stdio, Child};
 use std::time::Instant;
 use console::style;
-use indicatif::{ProgressBar, ProgressStyle};
-use anyhow::{Result, bail};
+use anyhow::{Result, bail, Context};
 use std::env;
-use std::path::PathBuf;
 
 pub fn run_script(command_str: &str, cwd: Option<&std::path::Path>) -> Result<()> {
     run_script_impl(command_str, cwd, None)
@@ -14,8 +12,14 @@ pub fn run_script_with_node(command_str: &str, cwd: Option<&std::path::Path>, no
     run_script_impl(command_str, cwd, Some(node_path))
 }
 
-pub fn spawn_script(command_str: &str, cwd: Option<&std::path::Path>, node_path: Option<&str>) -> Result<std::process::Child> {
+pub fn spawn_script(command_str: &str, cwd: Option<&std::path::Path>, node_path: Option<&str>) -> Result<Child> {
     println!("{} {}", style("🍳 Cooking:").bold().yellow(), style(command_str).cyan());
+
+    // Use shlex to split the command string (handles quotes)
+    let parts = shlex::split(command_str).context("Failed to parse command string")?;
+    let mut parts_iter = parts.iter();
+    let cmd_name = parts_iter.next().context("Empty command")?;
+    let args: Vec<&str> = parts_iter.map(|s| s.as_str()).collect();
 
     // Use provided CWD or current dir
     let working_dir = match cwd {
@@ -24,7 +28,7 @@ pub fn spawn_script(command_str: &str, cwd: Option<&std::path::Path>, node_path:
     };
 
     // Prepare PATH to include node_modules/.bin and optionally custom Node.js
-    let mut path_env = env::var_os("PATH").unwrap_or_default();
+    let path_env = env::var_os("PATH").unwrap_or_default();
     let bin_path = working_dir.join("node_modules").join(".bin");
     
     let mut paths = env::split_paths(&path_env).collect::<Vec<_>>();
@@ -39,22 +43,14 @@ pub fn spawn_script(command_str: &str, cwd: Option<&std::path::Path>, node_path:
     
     let new_path_env = env::join_paths(paths)?;
 
-    #[cfg(target_os = "windows")]
-    let (shell, arg) = ("cmd", "/C");
-    #[cfg(not(target_os = "windows"))]
-    let (shell, arg) = ("sh", "-c");
+    let mut command = Command::new(cmd_name);
+    command.args(args)
+           .current_dir(&working_dir)
+           .env("PATH", new_path_env)
+           .stdout(Stdio::piped())
+           .stderr(Stdio::piped());
 
-    let child = Command::new(shell)
-        .arg(arg)
-        .arg(command_str)
-        .current_dir(&working_dir)
-        .env("PATH", new_path_env)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .map_err(|e| anyhow::anyhow!("Failed to execute command '{}': {}", command_str, e))?;
-        
-    Ok(child)
+    Ok(command.spawn().map_err(|e| anyhow::anyhow!("Failed to execute '{}': {}", command_str, e))?)
 }
 
 pub fn pipe_output(child: &mut std::process::Child) -> (std::thread::JoinHandle<()>, std::thread::JoinHandle<()>) {

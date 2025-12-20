@@ -1,6 +1,6 @@
 [package]
 name = "crabby"
-version = "0.2.5"
+version = "0.2.6"
 edition = "2021"
 description = "A blazingly fast, standalone package manager for Node.js - No Node.js required!"
 repository = "https://github.com/AqwozTheDeveloper/crabby"
@@ -33,3 +33,4 @@ notify = "6.1"
 which = "6.0"
 dirs = "5.0"
 urlencoding = "2.1"
+shlex = "1.3"

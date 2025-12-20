@@ -218,7 +218,7 @@ fn link_binaries(pkg_name: &str, bin: &PackageBin, install_dir: &Path) -> Result
     };
 
     for (bin_name, file_path) in links {
-        let source_path = install_dir.join(&file_path);
+        let _source_path = install_dir.join(&file_path);
         let target = bin_dir.join(&bin_name);
         
         // Windows .cmd shim

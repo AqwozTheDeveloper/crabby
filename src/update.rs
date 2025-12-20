@@ -1,5 +1,4 @@
 use anyhow::{Context, Result};
-use colored::Colorize;
 use console::style;
 use serde::Deserialize;
 use std::collections::HashMap;

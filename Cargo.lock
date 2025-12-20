@@ -276,7 +276,7 @@ dependencies = [
 
 [[package]]
 name = "crabby"
-version = "0.2.5"
+version = "0.2.6"
 dependencies = [
  "anyhow",
  "clap",
@@ -295,6 +295,7 @@ dependencies = [
  "serde_json",
  "sha1",
  "sha2",
+ "shlex",
  "tar",
  "tokio",
  "urlencoding",

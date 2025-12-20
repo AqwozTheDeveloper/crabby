@@ -82,7 +82,7 @@ pub fn fetch_package_version(name: &str) -> Result<(String, String)> {
     }
 }
 
-pub fn download_and_extract(name: &str, version: &str, tarball_url: &str) -> Result<()> {
+pub fn download_and_extract(name: &str, _version: &str, tarball_url: &str) -> Result<()> {
     // Note: This function seems to be legacy or used for simple cases. 
     // package_utils::download_and_extract is the main one used by install command.
     // However, we update this one too for consistency.

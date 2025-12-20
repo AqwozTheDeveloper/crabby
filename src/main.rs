@@ -315,12 +315,12 @@ console.log(greet("Crabby"));
                 // Watch mode
                 println!("{} {}", style("👀 Listening for changes...").bold().blue(), style(&cmd_template).dim());
                 
-                use notify::{Watcher, RecursiveMode, Result as NotifyResult};
+                use notify::{Watcher, RecursiveMode};
                 use std::sync::mpsc::channel;
                 
                 // Initial run
                 let mut child = runner::spawn_script(&cmd_template, None, Some(&node_str)).ok();
-                let mut pipes = if let Some(c) = &mut child {
+                let mut _pipes = if let Some(c) = &mut child {
                      Some(runner::pipe_output(c))
                 } else {
                     None
@@ -375,7 +375,7 @@ console.log(greet("Crabby"));
                                 // Restart
                                 child = runner::spawn_script(&cmd_template, None, Some(&node_str)).ok();
                                 if let Some(c) = &mut child {
-                                    pipes = Some(runner::pipe_output(c));
+                                    _pipes = Some(runner::pipe_output(c));
                                 }
                             }
                         },
