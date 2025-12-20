@@ -261,6 +261,7 @@ console.log(`🚀 Suggested: Run 'crabby install' then check autocomplete here!`
 
                 // Add dependencies for better IDE experience
                 let mut pkg = manifest::PackageJson::load()?;
+                pkg.dependencies.insert("express".to_string(), "^4.18.2".to_string());
                 pkg.add_dev_dependency("typescript".to_string(), "^5.0.0".to_string());
                 pkg.add_dev_dependency("tsx".to_string(), "^4.0.0".to_string());
                 pkg.add_dev_dependency("@types/node".to_string(), "^20.0.0".to_string());
