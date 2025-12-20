@@ -354,21 +354,26 @@ app.listen(port, () => {
                         {
                             script_name_norm = script_name_norm.replace("\\", "/");
                         }
+                        
+                        // Quote the paths for safety
+                        let script_name_quoted = shlex::quote(&script_name_norm);
 
                         let cmd = match tsx_utils::get_tsx_command() {
                             Ok(tsx_utils::TsxCommand::NodeMjs(p)) => {
                                 let mut p_str = p.to_string_lossy().to_string();
                                 #[cfg(target_os = "windows")]
                                 { p_str = p_str.replace("\\", "/"); }
-                                format!("node \"{}\" {}", p_str, script_name_norm)
+                                let p_quoted = shlex::quote(&p_str);
+                                format!("node {} {}", p_quoted, script_name_quoted)
                             },
                             Ok(tsx_utils::TsxCommand::Executable(p)) => {
                                 let mut p_str = p.to_string_lossy().to_string();
                                 #[cfg(target_os = "windows")]
                                 { p_str = p_str.replace("\\", "/"); }
-                                format!("\"{}\" {}", p_str, script_name_norm)
+                                let p_quoted = shlex::quote(&p_str);
+                                format!("{} {}", p_quoted, script_name_quoted)
                             },
-                            Err(_) => format!("node node_modules/tsx/dist/cli.mjs {}", script_name_norm),
+                            Err(_) => format!("node node_modules/tsx/dist/cli.mjs {}", script_name_quoted),
                         };
                         (cmd, Some(script_name_norm.clone()), true)
                     } else {
@@ -377,7 +382,8 @@ app.listen(port, () => {
                         {
                             script_name_norm = script_name_norm.replace("\\", "/");
                         }
-                         (format!("{} {}", node_str, script_name_norm), Some(script_name_norm.clone()), false)
+                        let script_name_quoted = shlex::quote(&script_name_norm);
+                        (format!("{} {}", node_str, script_name_quoted), Some(script_name_norm.clone()), false)
                     }
                 } else {
                     // It's a package script
