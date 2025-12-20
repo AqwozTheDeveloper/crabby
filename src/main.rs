@@ -225,7 +225,7 @@ console.log(greet("Crabby"));
     "esModuleInterop": true,
     "strict": true,
     "skipLibCheck": true,
-    "types": ["node", "express"]
+    "lib": ["ES2020", "DOM"]
   },
   "include": ["src/**/*.ts"]
 }"#;
