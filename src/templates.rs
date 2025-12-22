@@ -798,3 +798,9 @@ button:hover {
 
     Ok(())
 }
+fn scaffold_express(dir: &Path, name: &str) -> Result<()> { anyhow::bail!("JS templates coming soon! Use 'express-ts' for now.") }
+fn scaffold_vite_react(dir: &Path, name: &str) -> Result<()> { anyhow::bail!("JS templates coming soon! Use 'vite-react-ts' for now.") }
+fn scaffold_vite_vue(dir: &Path, name: &str) -> Result<()> { anyhow::bail!("JS templates coming soon! Use 'vite-vue-ts' for now.") }
+fn scaffold_vite_svelte(dir: &Path, name: &str) -> Result<()> { anyhow::bail!("JS templates coming soon! Use 'vite-svelte-ts' for now.") }
+fn scaffold_vite_vanilla(dir: &Path, name: &str) -> Result<()> { anyhow::bail!("JS templates coming soon! Use 'vite-vanilla-ts' for now.") }
+fn scaffold_simple_js(dir: &Path, name: &str) -> Result<()> { anyhow::bail!("JS templates coming soon! Use 'simple-ts' for now.") }
