@@ -6,8 +6,10 @@ use std::fs;
 use std::path::Path;
 use flate2::read::GzDecoder;
 use tar::Archive;
+use std::sync::Arc;
+use tokio::sync::{Mutex, Semaphore};
 
-use crate::{manifest, runner, registry, tsx_utils};
+use crate::{manifest, runner, registry};
 
 #[derive(Debug, Deserialize)]
 pub struct PackageMetadata {
@@ -58,14 +60,16 @@ impl Default for PackageBin {
     }
 }
 
-pub fn fetch_package_version(name: &str, registry_url: &str, version_req: Option<&str>, client: &reqwest::blocking::Client) -> Result<(String, String, String)> {
+pub async fn fetch_package_version(name: &str, registry_url: &str, version_req: Option<&str>, client: &reqwest::Client) -> anyhow::Result<(String, String, String)> {
     let url = format!("{}/{}", registry_url.trim_end_matches('/'), name);
     let response = client.get(&url)
         .send()
+        .await
         .context("Failed to fetch package metadata")?
         .error_for_status()?;
 
-    let metadata: PackageMetadata = response.json()
+    let metadata = response.json::<PackageMetadata>()
+        .await
         .context("Failed to parse package metadata")?;
 
     let req_str = version_req.unwrap_or("latest");
@@ -96,89 +100,154 @@ pub fn fetch_package_version(name: &str, registry_url: &str, version_req: Option
     }
 }
 
-pub fn install_package(name: &str, registry_url: &str, client: &reqwest::blocking::Client, lockfile: &mut crate::manifest::CrabbyLock) -> Result<(String, String)> {
-    let mut visited = HashSet::new();
-    install_package_recursive(name, registry_url, None, &mut visited, client, lockfile)
+// Shared state for recursion
+struct InstallState {
+    visited: Mutex<HashSet<String>>,
+    lockfile: Mutex<crate::manifest::CrabbyLock>,
+    client: reqwest::Client,
+    registry_url: String,
+    semaphore: Semaphore,
 }
 
-fn install_package_recursive(name: &str, registry_url: &str, version_req: Option<&str>, visited: &mut HashSet<String>, client: &reqwest::blocking::Client, lockfile: &mut crate::manifest::CrabbyLock) -> Result<(String, String)> {
-    let visit_key = format!("{}@{}", name, version_req.unwrap_or("latest"));
-    if visited.contains(&visit_key) {
-        if let Some(dep) = lockfile.dependencies.get(name) {
-             return Ok((dep.version.clone(), dep.tarball.clone()));
-        }
-        return Ok(("0.0.0".to_string(), "".to_string()));
-    }
-    visited.insert(visit_key);
+pub async fn install_package(name: &str, registry_url: &str, client: &reqwest::Client, lockfile: crate::manifest::CrabbyLock) -> Result<(String, String, crate::manifest::CrabbyLock)> {
+    let state = Arc::new(InstallState {
+        visited: Mutex::new(HashSet::new()),
+        lockfile: Mutex::new(lockfile),
+        client: client.clone(),
+        registry_url: registry_url.to_string(),
+        semaphore: Semaphore::new(crate::MAX_CONCURRENT_DOWNLOADS),
+    });
 
-    println!("{} Resolving {} {}", style("🔍").dim(), name, version_req.unwrap_or("latest"));
+    install_package_recursive(name.to_string(), None, state.clone()).await?;
 
-    if let Some(dep) = lockfile.dependencies.get(name) {
-        let use_lock_version = match version_req {
-            Some(req) => req == "latest" || req == dep.version,
-            None => true,
-        };
+    let lockfile = state.lockfile.lock().await.clone();
+    Ok(("".to_string(), "".to_string(), lockfile))
+}
+
+// Recursive async function using BoxFuture for recursion
+fn install_package_recursive(name: String, version_req: Option<String>, state: Arc<InstallState>) 
+    -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<()>> + Send>> 
+{
+    Box::pin(async move {
+        let visit_key = format!("{}@{}", name, version_req.as_deref().unwrap_or("latest"));
         
-        if use_lock_version {
-            println!("{} Using locked version {}", style("🔒").dim(), style(&dep.version).dim());
-            download_and_extract(name, &dep.version, &dep.tarball, client, None)?;
-             return Ok((dep.version.clone(), dep.tarball.clone()));
+        {
+            let mut visited = state.visited.lock().await;
+            if visited.contains(&visit_key) {
+                return Ok(());
+            }
+            visited.insert(visit_key);
         }
-    }
 
-    let (version, tarball, checksum) = fetch_package_version(name, registry_url, version_req, client)?;
-    download_and_extract(name, &version, &tarball, client, Some(&checksum))?;
-
-    let node_modules = Path::new("node_modules");
-    // Normalize name for filesystem (handle scoped packages @types/node)
-    let safe_name = name.replace("/", &std::path::MAIN_SEPARATOR.to_string());
-    let install_dir = node_modules.join(&safe_name);
-    let mut pkg_deps = HashMap::new();
-
-    let pkg_json_path = install_dir.join("package.json");
-    if pkg_json_path.exists() {
-        let content = fs::read_to_string(&pkg_json_path)?;
-        let cleaned = crate::manifest::clean_json_content(content);
-        let pkg_json: InstalledPackageJson = match serde_json::from_str(&cleaned) {
-            Ok(p) => p,
-            Err(e) => {
-                eprintln!("Warning: Failed to parse package.json for {}: {}", name, e);
-                InstalledPackageJson { 
-                    dependencies: HashMap::new(), 
-                    scripts: HashMap::new(),
-                    bin: PackageBin::None 
+        // Check lockfile first
+        // Check lockfile first
+        let lock_data = {
+            let lockfile = state.lockfile.lock().await;
+            if let Some(dep) = lockfile.dependencies.get(&name) {
+                let use_lock_version = match &version_req {
+                    Some(req) => req == "latest" || req == &dep.version,
+                    None => true,
+                };
+                
+                if use_lock_version {
+                    Some((dep.version.clone(), dep.tarball.clone()))
+                } else {
+                    None
                 }
+            } else {
+                None
             }
         };
 
-        link_binaries(name, &pkg_json.bin, &install_dir)?;
-
-        if let Some(script) = pkg_json.scripts.get("preinstall") {
-            println!("{} Running preinstall for {}: '{}'", style("⚙️").yellow(), name, script);
-            runner::run_script(script, Some(&install_dir))?;
+        if let Some((ver, tar)) = lock_data {
+            println!("{} Using locked version {}", style("🔒").dim(), style(&ver).dim());
+            download_and_extract(&name, &ver, &tar, &state.client, None).await?;
+            return Ok(());
         }
 
-        pkg_deps = pkg_json.dependencies.clone();
-        for (dep_name, dep_ver) in &pkg_deps {
-             install_package_recursive(dep_name, registry_url, Some(dep_ver), visited, client, lockfile)?;
+        println!("{} Resolving {} {}", style("🔍").dim(), name, version_req.as_deref().unwrap_or("latest"));
+
+        let (version, tarball, checksum) = fetch_package_version(&name, &state.registry_url, version_req.as_deref(), &state.client).await?;
+        
+        // Acquire permit for download
+        let _permit = state.semaphore.acquire().await?;
+        download_and_extract(&name, &version, &tarball, &state.client, Some(&checksum)).await?;
+        drop(_permit);
+
+        let node_modules = Path::new("node_modules");
+        // Normalize name for filesystem (handle scoped packages @types/node)
+        #[cfg(target_os = "windows")]
+        let safe_name = name.replace("/", "\\");
+        #[cfg(not(target_os = "windows"))]
+        let safe_name = name.replace("/", "/");
+        
+        let install_dir = node_modules.join(&safe_name);
+        let mut pkg_deps = HashMap::new();
+
+        let pkg_json_path = install_dir.join("package.json");
+        if pkg_json_path.exists() {
+            let content = fs::read_to_string(&pkg_json_path)?;
+            let cleaned = crate::manifest::clean_json_content(content);
+            let pkg_json: InstalledPackageJson = match serde_json::from_str(&cleaned) {
+                Ok(p) => p,
+                Err(e) => {
+                    eprintln!("Warning: Failed to parse package.json for {}: {}", name, e);
+                    InstalledPackageJson { 
+                        dependencies: HashMap::new(), 
+                        scripts: HashMap::new(),
+                        bin: PackageBin::None 
+                    }
+                }
+            };
+
+            link_binaries(&name, &pkg_json.bin)?;
+
+            // Run scripts (sequentially for now within this task, but we should be careful about concurrency here)
+            // Ideally scripts run after all installs, but npm runs them post-extract often.
+            // For safety in parallel mode, we might want to suppress interactive scripts or lock output.
+            // For now, let's keep simplistic runner calls, but node usage might be tricky if parallel.
+            
+            // To be truly safe, we should probably collect scripts and run them at the end. 
+            // But for "speed boost", parallel download is key.
+            
+            if let Some(script) = pkg_json.scripts.get("preinstall") {
+                // println!("{} Running preinstall for {}", style("⚙️").yellow(), name);
+                 runner::run_script(script, Some(&install_dir))?;
+            }
+
+            pkg_deps = pkg_json.dependencies.clone();
+            
+            // Spawn parallel tasks for dependencies
+            let mut tasks = tokio::task::JoinSet::new();
+            
+            for (dep_name, dep_ver) in pkg_deps.clone() {
+                let state_clone = state.clone();
+                tasks.spawn(install_package_recursive(dep_name, Some(dep_ver), state_clone));
+            }
+
+            while let Some(res) = tasks.join_next().await {
+                res??; // Check for JoinError and Result calls
+            }
+
+            if let Some(script) = pkg_json.scripts.get("install") {
+                 runner::run_script(script, Some(&install_dir))?;
+            }
+
+            if let Some(script) = pkg_json.scripts.get("postinstall") {
+                 runner::run_script(script, Some(&install_dir))?;
+            }
         }
 
-        if let Some(script) = pkg_json.scripts.get("install") {
-            println!("{} Running install for {}: '{}'", style("⚙️").yellow(), name, script);
-            runner::run_script(script, Some(&install_dir))?;
+        {
+            let mut lockfile = state.lockfile.lock().await;
+            lockfile.add_package(name.clone(), version.clone(), tarball.clone(), pkg_deps);
         }
-
-        if let Some(script) = pkg_json.scripts.get("postinstall") {
-            println!("{} Running postinstall for {}: '{}'", style("⚙️").yellow(), name, script);
-            runner::run_script(script, Some(&install_dir))?;
-        }
-    }
-
-    lockfile.add_package(name.to_string(), version.clone(), tarball.clone(), pkg_deps);
-    Ok((version, tarball))
+        
+        Ok(())
+    })
 }
 
-fn link_binaries(pkg_name: &str, bin: &PackageBin, install_dir: &Path) -> Result<()> {
+fn link_binaries(pkg_name: &str, bin: &PackageBin) -> Result<()> {
     let node_modules = Path::new("node_modules");
     let bin_dir = node_modules.join(".bin");
     if !bin_dir.exists() {
@@ -215,15 +284,17 @@ fn link_binaries(pkg_name: &str, bin: &PackageBin, install_dir: &Path) -> Result
                 pkg_name, file_path
              );
              fs::write(&target, shim_content)?;
-             let mut perms = fs::metadata(&target)?.permissions();
-             perms.set_mode(0o755);
-             fs::set_permissions(&target, perms)?;
+             // Permissions need to be set on unix
+             if let Ok(mut perms) = fs::metadata(&target).and_then(|m| Ok(m.permissions())) {
+                 perms.set_mode(0o755);
+                 let _ = fs::set_permissions(&target, perms);
+             }
         }
     }
     Ok(())
 }
 
-pub fn download_and_extract(name: &str, version: &str, tarball_url: &str, client: &reqwest::blocking::Client, expected_checksum: Option<&str>) -> Result<()> {
+pub async fn download_and_extract(name: &str, version: &str, tarball_url: &str, client: &reqwest::Client, expected_checksum: Option<&str>) -> Result<()> {
     use crate::config::get_cache_dir;
     
     let cache_key = format!("{}-{}.tgz", name.replace("/", "-"), version);
@@ -231,26 +302,26 @@ pub fn download_and_extract(name: &str, version: &str, tarball_url: &str, client
     let cached_file = cache_dir.join(&cache_key);
     
     let tar_gz_data = if cached_file.exists() {
-        println!("{} Using cached tarball for {}", style("📦").dim(), name);
+        // println!("{} Using cached tarball for {}", style("📦").dim(), name);
         fs::read(&cached_file)?
     } else {
         println!("{} Downloading {}", style("⬇️").dim(), name);
         let response = client.get(tarball_url)
             .send()
+            .await
             .context("Failed to download tarball")?
             .error_for_status()?;
         
-        let bytes = response.bytes()?.to_vec();
+        let bytes = response.bytes().await?.to_vec();
         fs::write(&cached_file, &bytes)?;
         bytes
     };
 
     if let Some(expected) = expected_checksum {
         if !expected.is_empty() {
-            println!("{} Verifying checksum for {}", style("🔐").dim(), name);
-            match crate::safety::verify_checksum(&cached_file, Some(expected)) {
+             match crate::safety::verify_checksum(&cached_file, Some(expected)) {
                 Ok(true) => {
-                    println!("{} Checksum verified for {}", style("✅").green(), name);
+                    // Verified
                 },
                 Ok(false) => {
                     println!("{} {} Checksum mismatch for package '{}'", 
@@ -258,7 +329,6 @@ pub fn download_and_extract(name: &str, version: &str, tarball_url: &str, client
                         style("WARNING:").bold().yellow(),
                         name
                     );
-                    println!("   Expected: {}", style(expected).dim());
                 },
                 Err(e) => {
                     println!("{} Could not verify checksum: {}", style("⚠️").yellow(), e);
@@ -276,7 +346,11 @@ pub fn download_and_extract(name: &str, version: &str, tarball_url: &str, client
     }
     
     // Normalize name for filesystem (handle scoped packages @types/node)
-    let safe_name = name.replace("/", &std::path::MAIN_SEPARATOR.to_string());
+    #[cfg(target_os = "windows")]
+    let safe_name = name.replace("/", "\\");
+    #[cfg(not(target_os = "windows"))]
+    let safe_name = name.replace("/", "/");
+
     let target_dir = node_modules.join(&safe_name);
     if target_dir.exists() {
         fs::remove_dir_all(&target_dir)?;
@@ -287,7 +361,6 @@ pub fn download_and_extract(name: &str, version: &str, tarball_url: &str, client
         let mut entry = entry?;
         let path = entry.path()?.to_path_buf();
         
-        // Strip the first component (usually "package", but can be anything)
         let mut components = path.components();
         let _root = components.next();
         let relative_path = components.as_path();
@@ -297,7 +370,6 @@ pub fn download_and_extract(name: &str, version: &str, tarball_url: &str, client
         }
 
         let extract_path = target_dir.join(relative_path);
-        // println!("   {} Extracting to: {}", style("📄").dim(), extract_path.display());
         if let Some(parent) = extract_path.parent() {
             fs::create_dir_all(parent)?;
         }
@@ -306,12 +378,32 @@ pub fn download_and_extract(name: &str, version: &str, tarball_url: &str, client
     Ok(())
 }
 
-pub fn install_all_packages(deps: &HashMap<String, String>, registry_url: &str, client: &reqwest::blocking::Client, lockfile: &mut crate::manifest::CrabbyLock) -> Result<()> {
+pub async fn install_all_packages(deps: &HashMap<String, String>, registry_url: &str, client: &reqwest::Client, lockfile: crate::manifest::CrabbyLock) -> Result<crate::manifest::CrabbyLock> {
+    let state = Arc::new(InstallState {
+        visited: Mutex::new(HashSet::new()),
+        lockfile: Mutex::new(lockfile),
+        client: client.clone(),
+        registry_url: registry_url.to_string(),
+        semaphore: Semaphore::new(crate::MAX_CONCURRENT_DOWNLOADS),
+    });
+
+    let mut tasks = tokio::task::JoinSet::new();
+    
     if deps.is_empty() {
-        return Ok(());
+        return Ok(state.lockfile.lock().await.clone());
     }
-    for (name, _version_req) in deps {
-        let _ = install_package(name, registry_url, client, lockfile)?;
+
+    for (name, version_req) in deps {
+        let state_clone = state.clone();
+        let name = name.clone();
+        let version_req = version_req.clone();
+        tasks.spawn(install_package_recursive(name, Some(version_req), state_clone));
     }
-    Ok(())
+
+    while let Some(res) = tasks.join_next().await {
+        res??;
+    }
+    
+    let lockfile = state.lockfile.lock().await.clone();
+    Ok(lockfile)
 }

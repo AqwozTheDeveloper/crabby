@@ -37,7 +37,7 @@ pub fn get_global_bin_dir() -> Result<PathBuf> {
 }
 
 /// Install a package globally
-pub fn install_global(package: &str) -> Result<()> {
+pub async fn install_global(package: &str) -> Result<()> {
     let global_dir = get_global_dir()?;
     let bin_dir = get_global_bin_dir()?;
     let config = config::load_config()?;
@@ -60,18 +60,26 @@ pub fn install_global(package: &str) -> Result<()> {
     
     // Install package
     let mut lockfile = manifest::CrabbyLock::load().unwrap_or_default();
-    let result = package_utils::install_package(package, &config.registry, &client, &mut lockfile);
-    if result.is_ok() {
-        let _ = lockfile.save();
-    }
+    let result = package_utils::install_package(package, &config.registry, &client, lockfile).await;
     
     // Restore CWD
     // We attempt to restore even if install failed, but trigger error if restore fails methods
     let restore_res = std::env::set_current_dir(original_cwd);
+    
     match result {
-        Ok((version, _)) => {
+        Ok((version, _tarball, updated_lock)) => {
             restore_res?;
             
+            // Save lockfile (conceptually in global dir, but we changed back, so we need to be careful)
+            // Wait, we are back in original CWD. 
+            // We should save lockfile in global dir.
+            // Actually install_package returns the updated lock struct. 
+            // We should save it to global_dir/crabby.lock
+            
+            let lock_path = global_dir.join("crabby.lock");
+            let content = serde_json::to_string_pretty(&updated_lock)?;
+            fs::write(lock_path, content)?;
+
             // Link binaries to global bin
             link_global_binaries(package, &global_dir, &bin_dir)?;
             
@@ -85,10 +93,10 @@ pub fn install_global(package: &str) -> Result<()> {
     }
 }
 
-pub fn update_global(package: &str) -> Result<()> {
+pub async fn update_global(package: &str) -> Result<()> {
     println!("{} Updating global package {}...", style("🌍").bold().blue(), package);
     // Reuse install logic as it fetches latest matching version
-    install_global(package)
+    install_global(package).await
 }
 
 fn link_global_binaries(pkg_name: &str, global_dir: &Path, global_bin_dir: &Path) -> Result<()> {

@@ -173,9 +173,7 @@ async fn main() -> Result<()> {
     
     match &cli.command {
         Commands::Audit => {
-            tokio::task::spawn_blocking(|| {
-               audit::check_vulnerabilities()
-            }).await??;
+            audit::check_vulnerabilities().await?;
         }
         Commands::Exec { binary, args } => {
             let command_str = if args.is_empty() {
@@ -349,41 +347,14 @@ app.listen(port, () => {
                 let path = std::path::Path::new(&script_name);
                 if path.exists() && (script_name.ends_with(".js") || script_name.ends_with(".ts")) {
                     if script_name.ends_with(".ts") {
-                        let mut script_name_norm = script_name.clone();
-                        #[cfg(target_os = "windows")]
-                        {
-                            script_name_norm = script_name_norm.replace("\\", "/");
-                        }
-                        
-                        // Quote the paths for safety
-                        let script_name_quoted = shlex::quote(&script_name_norm);
-
-                        let cmd = match tsx_utils::get_tsx_command() {
-                            Ok(tsx_utils::TsxCommand::NodeMjs(p)) => {
-                                let mut p_str = p.to_string_lossy().to_string();
-                                #[cfg(target_os = "windows")]
-                                { p_str = p_str.replace("\\", "/"); }
-                                let p_quoted = shlex::quote(&p_str);
-                                format!("node {} {}", p_quoted, script_name_quoted)
-                            },
-                            Ok(tsx_utils::TsxCommand::Executable(p)) => {
-                                let mut p_str = p.to_string_lossy().to_string();
-                                #[cfg(target_os = "windows")]
-                                { p_str = p_str.replace("\\", "/"); }
-                                let p_quoted = shlex::quote(&p_str);
-                                format!("{} {}", p_quoted, script_name_quoted)
-                            },
-                            Err(_) => format!("node node_modules/tsx/dist/cli.mjs {}", script_name_quoted),
-                        };
-                        (cmd, Some(script_name_norm.clone()), true)
+                        let script_name_norm = script_name.replace("\\", "/");
+                        // Simplified for debug
+                        let cmd = format!("node --loader tsx {}", script_name_norm);
+                        (cmd, Some(script_name_norm), true)
                     } else {
-                        let mut script_name_norm = script_name.clone();
-                        #[cfg(target_os = "windows")]
-                        {
-                            script_name_norm = script_name_norm.replace("\\", "/");
-                        }
-                        let script_name_quoted = shlex::quote(&script_name_norm);
-                        (format!("{} {}", node_str, script_name_quoted), Some(script_name_norm.clone()), false)
+                        let script_name_norm = script_name.replace("\\", "/");
+                        let cmd = format!("node {}", script_name_norm);
+                        (cmd, Some(script_name_norm), false)
                     }
                 } else {
                     // It's a package script
@@ -434,13 +405,30 @@ app.listen(port, () => {
                 runner::run_script(&cmd_template, None)?;
             } else {
                 // Watch mode
-                println!("{} {}", style("👀 Listening for changes...").bold().blue(), style(&cmd_template).dim());
+                use chrono::Local;
+                
+                println!("\n{} {}", style("👀 Watch Mode Enabled").bold().blue(), style(&cmd_template).cyan());
                 
                 use notify::{Watcher, RecursiveMode};
                 use dialoguer::{theme::ColorfulTheme, Select, FuzzySelect};
                 use std::sync::mpsc::channel;
                 
-                // Initial run
+                // Determine what to watch
+                let watch_info = if let Some(file) = &file_to_watch {
+                    format!("Watching: {}", style(file).cyan())
+                } else {
+                    format!("Watching: {}", style("current directory").cyan())
+                };
+                println!("{} {}", style("📂").dim(), watch_info);
+                
+                // Initial run with timestamp
+                let timestamp = Local::now().format("%H:%M:%S");
+                println!("\n{} {} {}", 
+                    style("▶").green().bold(), 
+                    style(format!("[{}]", timestamp)).dim(),
+                    style("Starting...").bold()
+                );
+                
                 let mut child = runner::spawn_script(&cmd_template, None, Some(&node_str)).ok();
                 let mut _pipes = if let Some(c) = &mut child {
                      Some(runner::pipe_output(c))
@@ -457,30 +445,44 @@ app.listen(port, () => {
                      if let Some(parent) = path.parent() {
                          // Watch the parent directory so we catch edits
                          watcher.watch(parent, RecursiveMode::NonRecursive)?;
-                         println!("{} Watching directory: {}", style("📂").dim(), parent.display());
                      } else {
                          watcher.watch(path, RecursiveMode::NonRecursive)?;
                      }
                 } else {
-                    // Watch current directory if running generic script? Or maybe src?
-                    // For now watch current dir
+                    // Watch current directory
                     watcher.watch(std::path::Path::new("."), RecursiveMode::Recursive)?;
-                    println!("{} Watching current directory", style("📂").dim());
                 }
+
+                println!("{}", style("Waiting for changes... (Ctrl+C to exit)").dim());
 
                 loop {
                     match rx.recv() {
                         Ok(Ok(event)) => {
-                            // Check if the event is relevant (simplified)
-                            // Ideally we check if it matches file_to_watch
+                            // Check if the event is relevant
                             let should_restart = if let Some(target) = &file_to_watch {
                                 event.paths.iter().any(|p| p.to_string_lossy().contains(target))
                             } else {
-                                true 
+                                // Filter out common files to ignore
+                                event.paths.iter().any(|p| {
+                                    let path_str = p.to_string_lossy();
+                                    !path_str.contains("node_modules") && 
+                                    !path_str.contains(".git") &&
+                                    (path_str.ends_with(".js") || path_str.ends_with(".ts") || path_str.ends_with(".json"))
+                                })
                             };
 
                             if should_restart {
-                                println!("\n{} Change detected, restarting...", style("🔄").yellow());
+                                let timestamp = Local::now().format("%H:%M:%S");
+                                let changed_file = event.paths.first()
+                                    .map(|p| p.file_name().and_then(|n| n.to_str()).unwrap_or("unknown"))
+                                    .unwrap_or("unknown");
+                                    
+                                println!("\n{} {} {} {}", 
+                                    style("🔄").yellow(),
+                                    style(format!("[{}]", timestamp)).dim(),
+                                    style("Changed:").yellow(),
+                                    style(changed_file).cyan()
+                                );
                                 
                                 // Kill current process
                                 if let Some(mut c) = child {
@@ -488,20 +490,24 @@ app.listen(port, () => {
                                     let _ = c.wait(); // Prevent zombies
                                 }
                                 
-                                // Wait a bit for file release
-                                std::thread::sleep(std::time::Duration::from_millis(100));
+                                // Wait a bit for file release & debounce
+                                std::thread::sleep(std::time::Duration::from_millis(300));
                                 
-                                // Clean screen?
-                                // print!("{}[2J", 27 as char);
+                                // Restart with timestamp
+                                let restart_time = Local::now().format("%H:%M:%S");
+                                println!("{} {} {}", 
+                                    style("▶").green().bold(),
+                                    style(format!("[{}]", restart_time)).dim(),
+                                    style("Restarting...").bold()
+                                );
                                 
-                                // Restart
                                 child = runner::spawn_script(&cmd_template, None, Some(&node_str)).ok();
                                 if let Some(c) = &mut child {
                                     _pipes = Some(runner::pipe_output(c));
                                 }
                             }
                         },
-                        Ok(Err(e)) => println!("Watch error: {:?}", e),
+                        Ok(Err(e)) => println!("{} Watch error: {:?}", style("⚠️").yellow(), e),
                         Err(_) => break,
                     }
                 }
@@ -521,7 +527,7 @@ app.listen(port, () => {
                 }
 
                 for pkg_name in packages {
-                    match global::install_global(pkg_name) {
+                    match global::install_global(pkg_name).await {
                         Ok(_) => {}
                         Err(e) => println!("{} Global install failed for {}: {}", style("❌").red(), pkg_name, e),
                     }
@@ -543,24 +549,22 @@ app.listen(port, () => {
                     println!("{} Installing {}...", style("📦").bold().blue(), style(pkg_name).cyan());
                     
                     let pkg_name_clone = pkg_name.clone();
-                    let registry_url_clone = registry_url.clone();
-                    let mut lockfile_clone = lockfile.clone();
+                let registry_url_clone = config.registry.clone();
+                let mut lockfile_clone = manifest::CrabbyLock::load().unwrap_or_default();
+                
+                let client = registry::get_client()?;
+                // install_package now returns (version, tarball, updated_lockfile)
+                let (version_str, _, updated_lock) = package_utils::install_package(&pkg_name_clone, &registry_url_clone, &client, lockfile_clone).await?;
 
-                    let (version, updated_lock) = tokio::task::spawn_blocking(move || {
-                        let client = registry::get_client()?;
-                        let res = package_utils::install_package(&pkg_name_clone, &registry_url_clone, &client, &mut lockfile_clone)?;
-                        Ok::<( (String, String), manifest::CrabbyLock), anyhow::Error>((res, lockfile_clone))
-                    }).await??;
-
-                    lockfile = updated_lock;
-                    
-                    if *save_dev {
-                        pkg_json.add_dev_dependency(pkg_name.clone(), format!("^{}", version.0));
-                    } else {
-                        pkg_json.add_dependency(pkg_name.clone(), format!("^{}", version.0));
-                    }
-                    
-                    println!("{} Installed {} v{}", style("✅").green(), style(pkg_name).bold(), style(&version.0).dim());
+                lockfile = updated_lock;
+                
+                if *save_dev {
+                    pkg_json.add_dev_dependency(pkg_name.clone(), format!("^{}", version_str));
+                } else {
+                    pkg_json.add_dependency(pkg_name.clone(), format!("^{}", version_str));
+                }
+                
+                println!("{} Installed {} v{}", style("✅").green(), style(pkg_name).bold(), style(&version_str).dim());
                 }
                 
                 lockfile.save()?;
@@ -583,23 +587,20 @@ app.listen(port, () => {
                         let registry_url = config.registry.clone();
                         let ws_path = ws.path.clone();
                         
-                        tokio::task::spawn_blocking(move || -> Result<()> {
-                            let original_cwd = std::env::current_dir()?;
-                            std::env::set_current_dir(&ws_path)?;
-                            
-                            let mut pkg = manifest::PackageJson::load()?;
-                            let mut lockfile = manifest::CrabbyLock::load().unwrap_or_default();
-                            let all_deps = pkg.get_all_dependencies();
-                            
-                            if !all_deps.is_empty() {
-                                let client = registry::get_client()?;
-                                package_utils::install_all_packages(&all_deps, &registry_url, &client, &mut lockfile)?;
-                                lockfile.save()?;
-                            }
-                            
-                            std::env::set_current_dir(original_cwd)?;
-                            Ok(())
-                        }).await??;
+                        let original_cwd = std::env::current_dir()?;
+                        std::env::set_current_dir(&ws_path)?;
+                        
+                        let mut pkg = manifest::PackageJson::load()?;
+                        let lockfile = manifest::CrabbyLock::load().unwrap_or_default();
+                        let all_deps = pkg.get_all_dependencies();
+                        
+                        if !all_deps.is_empty() {
+                            let client = registry::get_client()?;
+                            let updated_lock = package_utils::install_all_packages(&all_deps, &registry_url, &client, lockfile).await?;
+                            updated_lock.save()?;
+                        }
+                        
+                        std::env::set_current_dir(original_cwd)?;
                     }
                      println!("{} Workspace installation complete", style("✅").bold().green());
                 } else {
@@ -610,12 +611,10 @@ app.listen(port, () => {
                      let config = config::load_config()?;
                      let registry_url = config.registry.clone();
                      
-                     let mut lockfile = manifest::CrabbyLock::load().unwrap_or_default();
-                     let updated_lockfile = tokio::task::spawn_blocking(move || {
-                        let client = registry::get_client()?;
-                        package_utils::install_all_packages(&all_deps, &registry_url, &client, &mut lockfile)?;
-                        Ok::<manifest::CrabbyLock, anyhow::Error>(lockfile)
-                     }).await??;
+                     let lockfile = manifest::CrabbyLock::load().unwrap_or_default();
+                     
+                     let client = registry::get_client()?;
+                     let updated_lockfile = package_utils::install_all_packages(&all_deps, &registry_url, &client, lockfile).await?;
 
                      updated_lockfile.save()?;
                      println!("{} Done!", style("✅").bold().green());
@@ -688,7 +687,7 @@ app.listen(port, () => {
         Commands::Update { package, global } => {
             if *global {
                  if let Some(pkg) = package {
-                    match global::update_global(pkg) {
+                    match global::update_global(pkg).await {
                         Ok(_) => println!("{} Global update complete!", style("✨").bold().green()),
                         Err(e) => println!("{} Global update failed: {}", style("❌").red(), e),
                     }
@@ -702,16 +701,14 @@ app.listen(port, () => {
                 println!("{} Updating {}...", style("📦").bold().blue(), pkg_name);
                 let (version, _tarball) = update::update_package(&pkg_name, &config.registry).await?;
                 
-                let mut lockfile = manifest::CrabbyLock::load().unwrap_or_default();
-                let registry_url = config.registry.clone();
-                let pkg_name_clone = pkg_name.clone();
-                
-                let (_installed_version, _tarball) = tokio::task::spawn_blocking(move || {
-                    let client = registry::get_client()?;
-                    package_utils::install_package(&pkg_name_clone, &registry_url, &client, &mut lockfile)?;
-                    lockfile.save()?;
-                    Ok::<(String, String), anyhow::Error>(("".to_string(), "".to_string()))
-                }).await??;
+                 let lockfile = manifest::CrabbyLock::load().unwrap_or_default();
+                 let registry_url = config.registry.clone();
+                 
+                 let client = registry::get_client()?;
+                 let (_, _, updated_lock) = package_utils::install_package(&pkg_name, &registry_url, &client, lockfile).await?;
+                 updated_lock.save()?;
+                 let installed_version = version.clone();
+                 let _tarball = "".to_string(); 
                 
                 let mut pkg_json = manifest::PackageJson::load()?;
                 pkg_json.add_dependency(pkg_name.clone(), format!("^{}", version));
@@ -927,112 +924,7 @@ fn run_package_script(script_name: &str) -> Result<()> {
     Ok(())
 }
 
-async fn install_all_dependencies(registry: &str) -> Result<()> {
-    use futures::stream::StreamExt;
-    use std::sync::{Arc, Mutex};
-    
-    let pkg_json = manifest::PackageJson::load()?;
-    let all_deps = pkg_json.get_all_dependencies();
-    
-    if all_deps.is_empty() {
-        println!("{} No dependencies to install", style("ℹ️").blue());
-        return Ok(());
-    }
-    
-    println!("{} Installing {} packages...", 
-        style("📦").bold().blue(), 
-        all_deps.len()
-    );
-    
-    let start = std::time::Instant::now();
-    
-    // Load or create lock file with thread-safe access
-    let lockfile = Arc::new(Mutex::new(manifest::CrabbyLock::load()?));
-    
-    // Constants for parallel execution
-    const MAX_CONCURRENT_DOWNLOADS: usize = 16;
-    
-    // Create a stream of install tasks
-    let registry_arc = Arc::new(registry.to_string());
-    
-    // Create shared HTTP client (cheap to clone, reuses connection pool)
-    let shared_client = Arc::new(registry::get_client()?);
-    
-    let results = futures::stream::iter(all_deps)
-        .map(|(name, _version)| {
-            let registry = Arc::clone(&registry_arc);
-            let lockfile = Arc::clone(&lockfile);
-            let client = Arc::clone(&shared_client);
-            let name = name.clone();
-            
-            async move {
-                // Prepare copies for the thread
-                let name_for_task = name.clone();
-                let registry_for_task = Arc::clone(&registry);
-                let client_for_task = Arc::clone(&client);
-                
-                let result = tokio::task::spawn_blocking(move || {
-                    let mut lock = lockfile.lock().unwrap();
-                    package_utils::install_package(&name_for_task, &registry_for_task, &client_for_task, &mut lock)
-                }).await;
-                
-                match result {
-                    Ok(install_res) => {
-                        match install_res {
-                            Ok((ver, _tarball)) => {
-                                println!("{} Installed {} {}", style("✅").green(), style(&name).cyan(), style(&ver).dim());
-                                Ok(name)
-                            },
-                            Err(e) => {
-                                println!("{} Failed {}: {}", style("❌").red(), style(&name).bold(), style(format!("{:?}", e)).dim());
-                                Err((name, e))
-                            }
-                        }
-                    },
-                    Err(join_err) => {
-                        println!("{} Task Error {}: {}", style("❌").red(), style(&name).bold(), style(join_err).dim());
-                        Err((name, anyhow::anyhow!("Task join error")))
-                    }
-                }
-            }
-        })
-        .buffer_unordered(MAX_CONCURRENT_DOWNLOADS)
-        .collect::<Vec<_>>()
-        .await;
 
-    // Process results
-    let mut installed = 0;
-    let mut failed = Vec::new();
-    
-    for res in results {
-        match res {
-            Ok(_) => installed += 1,
-            Err((name, _)) => failed.push(name),
-        }
-    }
-    
-    // Save lock file
-    if let Ok(lock) = lockfile.lock() {
-        lock.save()?;
-        println!("{} Lock file updated", style("🔒").dim());
-    }
-    
-    let duration = start.elapsed();
-    
-    println!(
-        "\n{} Installed {}/{} packages in {}", 
-        style("🎉").bold().green(),
-        installed,
-        installed + failed.len(),
-        style(humantime::format_duration(duration)).bold().magenta()
-    );
-    
-    if !failed.is_empty() {
-        println!("{} Failed to install: {:?}\n", style("⚠️").yellow(), failed);
-    }
-    
-    Ok(())
-}
 
 fn print_dependency_tree(pkg: &manifest::PackageJson, _lockfile: Option<&manifest::CrabbyLock>) -> Result<()> {
     // Collect all dependencies

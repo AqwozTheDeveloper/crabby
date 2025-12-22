@@ -1,10 +1,5 @@
-// Welcome to your Crabby TypeScript project!
-
-console.log("Hello from TypeScript! 🦀");
-
-// Example function
-function greet(name: string): string {
-    return `Hello, ${name}!`;
-}
-
-console.log(greet("Crabby"));
+﻿import express from 'express';
+const app = express();
+const port = 3000;
+app.get('/', (req, res) => res.send('Hello'));
+app.listen(port, () => console.log('Server ready'));

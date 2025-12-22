@@ -44,7 +44,7 @@ struct OsvVulnerability {
     database_specific: HashMap<String, serde_json::Value>,
 }
 
-pub fn check_vulnerabilities() -> Result<()> {
+pub async fn check_vulnerabilities() -> Result<()> {
     println!("{} {} scanning dependencies via OSV.dev...", style("🦀").bold().cyan(), style("🛡️").bold().blue());
 
     let client = registry::get_client()?;
@@ -75,6 +75,7 @@ pub fn check_vulnerabilities() -> Result<()> {
     let resp = client.post("https://api.osv.dev/v1/querybatch")
         .json(&batch_request)
         .send()
+        .await
         .context("Failed to contact OSV.dev API")?;
 
     if !resp.status().is_success() {
@@ -83,6 +84,7 @@ pub fn check_vulnerabilities() -> Result<()> {
     }
 
     let batch_resp: OsvBatchResponse = resp.json()
+        .await
         .context("Failed to parse OSV response")?;
 
     let mut total_vulns = 0;

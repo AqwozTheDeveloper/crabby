@@ -5,7 +5,6 @@ use flate2::read::GzDecoder;
 use tar::Archive;
 use std::path::Path;
 use std::time::Duration;
-use std::thread;
 use console::style;
 
 const REGISTRY_URL: &str = "https://registry.npmjs.org";
@@ -34,30 +33,23 @@ pub struct PackageDistTags {
     pub latest: String,
 }
 
-pub fn get_client() -> Result<reqwest::blocking::Client> {
-    // reqwest::blocking::Client::builder() panics if called in async context.
-    // Crabby uses tokio::main, so we are in async context.
-    // We must spawn a separate thread to create the client.
-    
-    std::thread::spawn(|| {
-        reqwest::blocking::Client::builder()
-            .timeout(Duration::from_secs(TIMEOUT_SECS))
-            .build()
-            .context("Failed to create HTTP client")
-    }).join().unwrap_or_else(|_| Err(anyhow::anyhow!("Thread panicked creating client")))
+pub fn get_client() -> Result<reqwest::Client> {
+    reqwest::Client::builder()
+        .timeout(Duration::from_secs(TIMEOUT_SECS))
+        .build()
+        .context("Failed to create HTTP client")
 }
 
-pub fn fetch_package_version(name: &str) -> Result<(String, String)> {
+pub async fn fetch_package_version(name: &str, client: &reqwest::Client) -> Result<(String, String)> {
     let url = format!("{}/{}", REGISTRY_URL, name);
-    let client = get_client()?;
 
     let mut attempt = 0;
     loop {
         attempt += 1;
-        match client.get(&url).send() {
+        match client.get(&url).send().await {
             Ok(resp) => {
                 let resp = resp.error_for_status()?;
-                let metadata: PackageMetadata = resp.json()?;
+                let metadata: PackageMetadata = resp.json().await?;
                 let latest_version = metadata.dist_tags.latest.clone();
                 
                 let version_info = metadata.versions.get(&latest_version)
@@ -76,23 +68,21 @@ pub fn fetch_package_version(name: &str) -> Result<(String, String)> {
                     MAX_RETRIES, 
                     e
                 );
-                thread::sleep(Duration::from_secs(2u64.pow(attempt - 1)));
+                tokio::time::sleep(Duration::from_secs(2u64.pow(attempt - 1))).await;
             }
         }
     }
 }
 
-pub fn download_and_extract(name: &str, _version: &str, tarball_url: &str) -> Result<()> {
+pub async fn download_and_extract(name: &str, _version: &str, tarball_url: &str, client: &reqwest::Client) -> Result<()> {
     // Note: This function seems to be legacy or used for simple cases. 
     // package_utils::download_and_extract is the main one used by install command.
     // However, we update this one too for consistency.
     
-    let client = get_client()?;
-    
     let mut attempt = 0;
     let response = loop {
         attempt += 1;
-        match client.get(tarball_url).send() {
+        match client.get(tarball_url).send().await {
             Ok(resp) => break resp.error_for_status()?,
             Err(e) => {
                  if attempt >= MAX_RETRIES {
@@ -105,17 +95,18 @@ pub fn download_and_extract(name: &str, _version: &str, tarball_url: &str) -> Re
                     MAX_RETRIES, 
                     e
                 );
-                thread::sleep(Duration::from_secs(2u64.pow(attempt - 1)));
+                tokio::time::sleep(Duration::from_secs(2u64.pow(attempt - 1))).await;
             }
         }
     };
 
-    let tar_gz = GzDecoder::new(response);
+    let bytes = response.bytes().await?.to_vec();
+    let tar_gz = GzDecoder::new(&bytes[..]);
     let mut archive = Archive::new(tar_gz);
 
     let node_modules = Path::new("node_modules");
     if !node_modules.exists() {
-        fs::create_dir(node_modules)?;
+        fs::create_dir_all(node_modules)?;
     }
     
     let target_dir = node_modules.join(name);
@@ -127,14 +118,12 @@ pub fn download_and_extract(name: &str, _version: &str, tarball_url: &str) -> Re
     // NPM tarballs usually contain a 'package' root directory. We want to strip that.
     for entry in archive.entries()? {
         let mut entry = entry?;
-        let path = entry.path()?;
+        let path = entry.path()?.to_path_buf();
         
-        let path_str = path.to_string_lossy();
-        let relative_path = if path_str.starts_with("package/") {
-             path.strip_prefix("package")?
-        } else {
-             continue; // Skip files not in 'package/' if any (standard npm packing puts everything in package/)
-        };
+        // Strip the first component (usually "package", but can be anything)
+        let mut components = path.components();
+        let _root = components.next();
+        let relative_path = components.as_path();
 
         if relative_path.as_os_str().is_empty() {
              continue; 
