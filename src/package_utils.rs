@@ -91,7 +91,7 @@ pub async fn fetch_package_version(name: &str, registry_url: &str, version_req: 
             .context("Version not found in map")?;
         Ok((best_version_str, version_info.dist.tarball.clone(), version_info.dist.shasum.clone()))
     } else {
-        println!("{} No matching version for {} {}, using latest", style("⚠️").yellow(), name, req_str);
+        crate::ui::print_warning(&format!("No matching version for {} {}, using latest", name, req_str));
         // Fallback to latest to try our best
         let latest_version = metadata.dist_tags.latest.clone();
         let version_info = metadata.versions.get(&latest_version)
@@ -160,12 +160,12 @@ fn install_package_recursive(name: String, version_req: Option<String>, state: A
         };
 
         if let Some((ver, tar)) = lock_data {
-            println!("{} Using locked version {}", style("🔒").dim(), style(&ver).dim());
+            println!("{} Using locked version {}", crate::ui::Icons::LOCK, style(&ver).dim());
             download_and_extract(&name, &ver, &tar, &state.client, None).await?;
             return Ok(());
         }
 
-        println!("{} Resolving {} {}", style("🔍").dim(), name, version_req.as_deref().unwrap_or("latest"));
+        println!("{} Resolving {} {}", crate::ui::Icons::SEARCH, style(&name).cyan(), style(version_req.as_deref().unwrap_or("latest")).dim());
 
         let (version, tarball, checksum) = fetch_package_version(&name, &state.registry_url, version_req.as_deref(), &state.client).await?;
         
@@ -305,7 +305,7 @@ pub async fn download_and_extract(name: &str, version: &str, tarball_url: &str, 
         // println!("{} Using cached tarball for {}", style("📦").dim(), name);
         fs::read(&cached_file)?
     } else {
-        println!("{} Downloading {}", style("⬇️").dim(), name);
+        println!("{} Downloading {}", crate::ui::Icons::DOWNLOAD, style(name).cyan());
         let response = client.get(tarball_url)
             .send()
             .await

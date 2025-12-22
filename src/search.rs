@@ -25,7 +25,8 @@ struct PackageInfo {
 
 /// Search for packages in npm registry
 pub async fn search_packages(query: &str, limit: usize) -> Result<()> {
-    println!("{} Searching for '{}'...\n", style("🔍").cyan(), query);
+    crate::ui::print_step(crate::ui::Icons::SEARCH, &format!("Searching for '{}'...", query));
+    println!();
     
     let url = format!(
         "https://registry.npmjs.org/-/v1/search?text={}&size={}",
@@ -40,48 +41,27 @@ pub async fn search_packages(query: &str, limit: usize) -> Result<()> {
         .await?;
     
     if response.objects.is_empty() {
-        println!("{} No packages found", style("❌").red());
+        crate::ui::print_error(&format!("No packages found for '{}'", query));
         return Ok(());
     }
-    
-    println!("{} Found {} packages:\n", 
-        style("✓").green(), 
-        response.total
-    );
     
     for obj in response.objects.iter().take(limit) {
         let pkg = &obj.package;
         
-        println!("{} {}", 
-            style(&pkg.name).bold().cyan(),
-            style(format!("v{}", pkg.version)).dim()
+        // We don't have download count in this simple search response yet, 
+        // but we can pass None or find it if we wanted to.
+        crate::ui::print_package_card(
+            &pkg.name, 
+            &pkg.version, 
+            pkg.description.as_deref(),
+            None
         );
-        
-        if let Some(desc) = &pkg.description {
-            println!("  {}", style(desc).dim());
-        }
-        
-        if let Some(keywords) = &pkg.keywords {
-            if !keywords.is_empty() {
-                println!("  {} {}", 
-                    style("Keywords:").dim(),
-                    keywords.join(", ")
-                );
-            }
-        }
-        
-        println!();
     }
     
     if response.total > limit {
-        println!("{} Showing {}/{} results", 
-            style("ℹ").blue(),
-            limit,
-            response.total
-        );
-        println!("{} Refine your search for more specific results\n",
-            style("💡").cyan()
-        );
+        println!();
+        crate::ui::print_info(&format!("Showing {}/{} results", limit, response.total));
+        crate::ui::print_info("Refine your search for more specific results");
     }
     
     Ok(())

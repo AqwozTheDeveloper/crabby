@@ -546,7 +546,7 @@ app.listen(port, () => {
                 let mut pkg_json = manifest::PackageJson::load()?;
                 
                 for pkg_name in packages {
-                    println!("{} Installing {}...", style("📦").bold().blue(), style(pkg_name).cyan());
+                    println!("{} Installing {}...", ui::Icons::INSTALL, style(pkg_name).cyan());
                     
                     let pkg_name_clone = pkg_name.clone();
                 let registry_url_clone = config.registry.clone();
@@ -564,7 +564,7 @@ app.listen(port, () => {
                     pkg_json.add_dependency(pkg_name.clone(), format!("^{}", version_str));
                 }
                 
-                println!("{} Installed {} v{}", style("✅").green(), style(pkg_name).bold(), style(&version_str).dim());
+                    println!("{} Installed {} v{}", ui::Icons::SUCCESS, style(pkg_name).bold(), style(&version_str).dim());
                 }
                 
                 lockfile.save()?;
@@ -622,11 +622,11 @@ app.listen(port, () => {
             }
         }
         Commands::Remove { package, force } => {
-            println!("{} {}", style("🗑️").bold().red(), style(format!("Removing {}...", package)).bold());
+            ui::print_step(ui::Icons::REMOVE, &format!("Removing {}...", package));
             
             let mut pkg_json = manifest::PackageJson::load()?;
             if !pkg_json.dependencies.contains_key(package) && !pkg_json.dev_dependencies.contains_key(package) {
-                println!("{} Package '{}' not found in dependencies", style("❌").red(), package);
+                ui::print_error(&format!("Package '{}' not found in dependencies", package));
                 return Ok(());
             }
             
@@ -640,7 +640,7 @@ app.listen(port, () => {
                 io::stdin().read_line(&mut input)?;
                 
                 if !input.trim().eq_ignore_ascii_case("y") {
-                    println!("{} Cancelled", style("❌").red());
+                    ui::print_info("Cancelled");
                     return Ok(());
                 }
             }
@@ -649,7 +649,7 @@ app.listen(port, () => {
             let pkg_json_path = std::path::Path::new("package.json");
             if pkg_json_path.exists() {
                 let backup_path = safety::create_backup(pkg_json_path)?;
-                println!("{} Created backup: {}", style("💾").dim(), backup_path.display());
+                ui::print_info(&format!("Created backup: {}", backup_path.display()));
             }
             
             pkg_json.remove_dependency(package);
@@ -664,23 +664,45 @@ app.listen(port, () => {
                 std::fs::remove_dir_all(&package_path)?;
             }
             
-            println!("{} Removed {}", style("✅").bold().green(), style(package).bold().white());
+            ui::print_success(&format!("Removed {}", package));
         }
         Commands::List { tree } => {
             let pkg = manifest::PackageJson::load()?;
-            println!("{} Installed packages:", style("📦").bold().blue());
+            ui::print_header(&format!("{} Installed Packages", ui::Icons::PACKAGE));
             
             if *tree {
                 let lockfile = manifest::CrabbyLock::load().ok();
                 print_dependency_tree(&pkg, lockfile.as_ref())?;
             } else {
-                if pkg.dependencies.is_empty() {
-                    println!("  {}", style("No packages installed").dim());
+                if pkg.dependencies.is_empty() && pkg.dev_dependencies.is_empty() {
+                    ui::print_info("No packages installed");
                 } else {
+                    // Prepare table data
+                    let mut rows = Vec::new();
+                    let mut total_count = 0;
+                    
+                    // Add regular dependencies
                     for (name, version) in &pkg.dependencies {
-                        println!("  {} {}", style(name).cyan(), style(version).dim());
+                        rows.push(vec![
+                            name.clone(),
+                            version.clone(),
+                            "production".to_string()
+                        ]);
+                        total_count += 1;
                     }
-                    println!("\n{} {} packages total", style("📊").dim(), pkg.dependencies.len());
+                    
+                    // Add dev dependencies
+                    for (name, version) in &pkg.dev_dependencies {
+                        rows.push(vec![
+                            name.clone(),
+                            version.clone(),
+                            style("dev").yellow().to_string()
+                        ]);
+                        total_count += 1;
+                    }
+                    
+                    ui::print_table(&["Package", "Version", "Type"], &rows);
+                    println!("\n{} {} packages total", ui::Icons::INFO, total_count);
                 }
             }
         }
@@ -688,17 +710,17 @@ app.listen(port, () => {
             if *global {
                  if let Some(pkg) = package {
                     match global::update_global(pkg).await {
-                        Ok(_) => println!("{} Global update complete!", style("✨").bold().green()),
-                        Err(e) => println!("{} Global update failed: {}", style("❌").red(), e),
+                        Ok(_) => ui::print_success("Global update complete!"),
+                        Err(e) => ui::print_error(&format!("Global update failed: {}", e)),
                     }
                  } else {
-                     println!("{} Please specify a global package to update", style("⚠️").yellow());
+                     ui::print_warning("Please specify a global package to update");
                  }
                  return Ok(());
             }
 
             if let Some(pkg_name) = package {
-                println!("{} Updating {}...", style("📦").bold().blue(), pkg_name);
+                ui::print_step(ui::Icons::UPDATE, &format!("Updating {}...", pkg_name));
                 let (version, _tarball) = update::update_package(&pkg_name, &config.registry).await?;
                 
                  let lockfile = manifest::CrabbyLock::load().unwrap_or_default();
@@ -707,43 +729,49 @@ app.listen(port, () => {
                  let client = registry::get_client()?;
                  let (_, _, updated_lock) = package_utils::install_package(&pkg_name, &registry_url, &client, lockfile).await?;
                  updated_lock.save()?;
-                 let installed_version = version.clone();
-                 let _tarball = "".to_string(); 
-                
+                 
                 let mut pkg_json = manifest::PackageJson::load()?;
                 pkg_json.add_dependency(pkg_name.clone(), format!("^{}", version));
                 pkg_json.save()?;
                 
-                println!("{} Updated {} to {}", style("✅").green(), pkg_name, version);
+                ui::print_success(&format!("Updated {} to {}", pkg_name, version));
             } else {
-                println!("{} Checking for updates...", style("🔍").dim());
+                ui::print_step(ui::Icons::SEARCH, "Checking for updates...");
                 let outdated = update::check_outdated(&config.registry).await?;
                 
                 if outdated.is_empty() {
-                    println!("{} All packages are up to date!", style("✅").green());
+                    ui::print_success("All packages are up to date!");
                 } else {
-                    println!("\n{} packages to update:", outdated.len());
+                    ui::print_header(&format!("{} Updates available", ui::Icons::UPDATE));
+                    let mut rows = Vec::new();
                     for (name, current, latest) in &outdated {
-                        println!("  {} {} → {}", name, style(current).dim(), style(latest).green());
+                        rows.push(vec![
+                            name.clone(),
+                            style(current).dim().to_string(),
+                            style(latest).green().to_string()
+                        ]);
                     }
+                    ui::print_table(&["Package", "Current", "Latest"], &rows);
                 }
             }
         }
         Commands::Outdated => {
-            println!("{} Checking for outdated packages...", style("🔍").dim());
+            ui::print_step(ui::Icons::SEARCH, "Checking for outdated packages...");
             let outdated = update::check_outdated(&config.registry).await?;
             
             if outdated.is_empty() {
-                println!("{} All packages are up to date!", style("✅").green());
+                ui::print_success("All packages are up to date!");
             } else {
-                println!("\n{} Outdated packages:", style("📊").bold());
+                ui::print_header(&format!("{} Outdated packages", ui::Icons::WARNING));
+                let mut rows = Vec::new();
                 for (name, current, latest) in outdated {
-                    println!("  {} {} → {}", 
-                        style(name).cyan(), 
-                        style(current).dim(), 
-                        style(latest).green()
-                    );
+                    rows.push(vec![
+                        name,
+                        style(current).dim().to_string(),
+                        style(latest).green().to_string()
+                    ]);
                 }
+                ui::print_table(&["Package", "Current", "Latest"], &rows);
             }
         }
         Commands::Info { package } => {
@@ -754,11 +782,10 @@ app.listen(port, () => {
         }
         Commands::Clean { cache, force, dry_run } => {
             if *dry_run {
-                println!("{} DRY RUN - No files will be removed", style("ℹ️").bold().blue());
-                println!("");
+                ui::print_info("DRY RUN - No files will be removed\n");
             }
             
-            println!("{} This will remove:", style("⚠️").bold().yellow());
+            ui::print_warning("This will remove:");
             println!("  • node_modules/");
             println!("  • crabby.lock");
             if *cache {
@@ -774,71 +801,71 @@ app.listen(port, () => {
                 io::stdin().read_line(&mut input)?;
                 
                 if !input.trim().eq_ignore_ascii_case("y") {
-                    println!("{} Cancelled", style("❌").red());
+                    ui::print_error("Cancelled");
                     return Ok(());
                 }
             }
             
             if *dry_run {
-                println!("\n{} Dry run complete - no changes made", style("✅").green());
+                ui::print_success("Dry run complete - no changes made");
                 return Ok(());
             }
             
-            println!("\n{} Cleaning...", style("🧹").bold().yellow());
+            ui::print_step(ui::Icons::CLEAN, "Cleaning...");
             
             let node_modules = std::path::Path::new("node_modules");
             if node_modules.exists() {
                 std::fs::remove_dir_all(node_modules)?;
-                println!("{} Removed node_modules/", style("✅").green());
+                ui::print_success("Removed node_modules/");
             }
             
             let lock_file = std::path::Path::new("crabby.lock");
             if lock_file.exists() {
                 std::fs::remove_file(lock_file)?;
-                println!("{} Removed crabby.lock", style("✅").green());
+                ui::print_success("Removed crabby.lock");
             }
             
             if *cache {
                 let cache_dir = config::get_cache_dir()?;
                 if cache_dir.exists() {
                     std::fs::remove_dir_all(&cache_dir)?;
-                    println!("{} Cleared global cache", style("✅").green());
+                    ui::print_success("Cleared global cache");
                 }
             }
             
-            println!("{} Clean complete!", style("🎉").bold().green());
+            ui::print_success("Clean complete!");
         }
         Commands::Why { package } => {
             let lockfile = manifest::CrabbyLock::load()?;
             let pkg = manifest::PackageJson::load()?;
             
-            println!("{} Finding reason for {}...", style("🔍").dim(), style(package).bold().cyan());
+            ui::print_step(ui::Icons::SEARCH, &format!("Finding reason for {}...", style(package).bold().cyan()));
             
             let mut found = false;
             if pkg.dependencies.contains_key(package) {
-                println!("{} Direct dependency in {}", style("•").green(), style("package.json").dim());
+                println!("{} Direct dependency in {}", style(ui::Icons::CHECKMARK).green(), style("package.json").dim());
                 found = true;
             }
             if pkg.dev_dependencies.contains_key(package) {
-                println!("{} Direct devDependency in {}", style("•").green(), style("package.json").dim());
+                println!("{} Direct devDependency in {}", style(ui::Icons::CHECKMARK).green(), style("package.json").dim());
                 found = true;
             }
             
             let paths = explorer::find_dependency_paths(&lockfile, &pkg, package);
             for path in paths {
-                println!("{} {}", style("•").green(), path.join(style(" → ").dim().to_string().as_str()));
+                println!("{} {}", style(ui::Icons::CHECKMARK).green(), path.join(style(" → ").dim().to_string().as_str()));
                 found = true;
             }
 
             if !found {
-                println!("{} Package {} not found in dependency graph", style("❌").red(), package);
+                ui::print_error(&format!("Package {} not found in dependency graph", package));
             }
         }
         Commands::Prune { dry_run } => {
             let pkg = manifest::PackageJson::load()?;
             let lockfile = manifest::CrabbyLock::load()?;
             
-            println!("{} Pruning unneeded dependencies...", style("🧹").bold().yellow());
+            ui::print_step(ui::Icons::CLEAN, "Pruning unneeded dependencies...");
             
             // Collect all reachable dependencies
             let mut reachable = HashSet::new();
@@ -849,12 +876,12 @@ app.listen(port, () => {
             }
             
             if *dry_run {
-                println!("{} DRY RUN - No files will be removed\n", style("ℹ️").bold().blue());
+                ui::print_info("DRY RUN - No files will be removed\n");
             }
 
             let node_modules = Path::new("node_modules");
             if !node_modules.exists() {
-                println!("{} node_modules does not exist", style("ℹ️").dim());
+                ui::print_info("node_modules does not exist");
                 return Ok(());
             }
 
@@ -876,7 +903,7 @@ app.listen(port, () => {
                         // It's a scope, look inside
                         visit_dirs(&path, reachable, base, dry_run, count)?;
                     } else if !reachable.contains(&pkg_name) {
-                        println!("{} Pruning {}", style("🗑️").red(), pkg_name);
+                        println!("{} Pruning {}", style(ui::Icons::REMOVE).red(), pkg_name);
                         if !dry_run {
                             fs::remove_dir_all(&path)?;
                         }
@@ -889,9 +916,9 @@ app.listen(port, () => {
             visit_dirs(node_modules, &reachable, node_modules, *dry_run, &mut pruned_count)?;
 
             if pruned_count == 0 {
-                println!("{} No unneeded packages found", style("✅").green());
+                ui::print_success("No unneeded packages found");
             } else {
-                println!("\n{} {} packages", if *dry_run { "Would prune" } else { "Pruned" }, pruned_count);
+                ui::print_success(&format!("{} {} packages", if *dry_run { "Would prune" } else { "Pruned" }, pruned_count));
             }
         }
     }

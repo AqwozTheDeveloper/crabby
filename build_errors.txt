@@ -1,0 +1,492 @@
+﻿cargo :     Checking 
+crabby v2.9.0 (C:\Use
+rs\amesa\Desktop\crab
+by)
+At line:1 char:1
++ cargo check 2>&1 | 
+Out-File -FilePath bu
+ild_errors.txt -Encod
+ing utf8
++ ~~~~~~~~~~~~~~~~
+    + CategoryInfo   
+           : NotSpe  
+  cified: (    Che   
+ cking cr...Deskt    
+op\crabby):Strin    g
+) [], RemoteExc    ep
+tion
+    + FullyQualified 
+   ErrorId : Native  
+  CommandError
+ 
+warning: unused impor
+t: `Serialize`
+ --> src\package_util
+s.rs:3:26
+  |
+3 | use serde::{Deser
+ialize, Serialize};
+  |                  
+        ^^^^^^^^^
+  |
+  = note: `#[warn(unu
+sed_imports)]` (part 
+of `#[warn(unused)]`)
+ on by default
+
+warning: unused impor
+ts: `manifest` and `r
+egistry`
+  --> src\package_uti
+ls.rs:12:13
+   |
+12 | use crate::{mani
+fest, runner, registr
+y};
+   |             ^^^^
+^^^^          ^^^^^^^
+^
+
+warning: unused impor
+t: `console::style`
+ --> src\search.rs:2:
+5
+  |
+2 | use console::styl
+e;
+  |     ^^^^^^^^^^^^^
+^
+
+warning: unused impor
+ts: `global` and `run
+ner`
+ --> src\global.rs:5:
+38
+  |
+5 | use crate::{manif
+est, package_utils, r
+unner, registry, conf
+ig, global};
+  |                  
+                    ^
+^^^^^                
+    ^^^^^^
+
+warning: unused impor
+t: `Context`
+ --> src\templates.rs
+:1:22
+  |
+1 | use anyhow::{Resu
+lt, Context};
+  |                  
+    ^^^^^^^
+
+warning: unused impor
+t: `console::style`
+ --> src\explorer.rs:
+2:5
+  |
+2 | use console::styl
+e;
+  |     ^^^^^^^^^^^^^
+^
+
+warning: unused impor
+t: `HashMap`
+  --> src\main.rs:24:
+24
+   |
+24 | use std::collect
+ions::{HashMap, HashS
+et};
+   |                 
+       ^^^^^^^
+
+warning: unused impor
+ts: `FuzzySelect`, `S
+elect`, and `theme::C
+olorfulTheme`
+   --> src\main.rs:41
+3:33
+    |
+413 |                
+ use dialoguer::{them
+e::ColorfulTheme, Sel
+ect, FuzzySelect};
+    |                
+                 ^^^^
+^^^^^^^^^^^^^^^^  ^^^
+^^^  ^^^^^^^^^^^
+
+warning: variable doe
+s not need to be muta
+ble
+  --> src\global.rs:6
+2:9
+   |
+62 |     let mut lock
+file = manifest::Crab
+byLock::load().unwrap
+_or_default();
+   |         ----^^^^
+^^^^
+   |         |
+   |         help: re
+move this `mut`
+   |
+   = note: `#[warn(un
+used_mut)]` (part of 
+`#[warn(unused)]`) on
+ by default
+
+error[E0382]: borrow 
+of moved value: `name
+`
+    --> src\package_u
+tils.rs:170:66
+     |
+ 168 | ...   println!
+("{} Resolving {} {}"
+, crate::ui::Icons::S
+EARCH, style(name).cy
+an(), style(version_r
+eq.as_deref().unwrap_
+or("latest")).dim());
+     |               
+                     
+                     
+             ---- val
+ue moved here
+ 169 | ...
+ 170 | ...   let (ver
+sion, tarball, checks
+um) = fetch_package_v
+ersion(&name, &state.
+registry_url, version
+_req.as_deref(), &sta
+te.client).await?;
+     |               
+                     
+                     
+       ^^^^^ value bo
+rrowed here after mov
+e
+     |
+     = note: move occ
+urs because `name` ha
+s type `std::string::
+String`, which does n
+ot implement the `Cop
+y` trait
+     = note: borrow o
+ccurs due to deref co
+ercion to `str`
+note: deref defined h
+ere
+    --> C:\Users\ames
+a\.rustup\toolchains\
+stable-x86_64-pc-wind
+ows-msvc\lib/rustlib/
+src/rust\library\allo
+c\src\string.rs:2724:
+5
+     |
+2724 |     type Targe
+t = str;
+     |     ^^^^^^^^^^
+^
+
+warning: unused varia
+ble: `dir`
+   --> src\templates.
+rs:801:21
+    |
+801 | fn scaffold_exp
+ress(dir: &Path, name
+: &str) -> Result<()>
+ { anyhow::bail!("JS 
+templates coming soon
+! Use 'express-ts' fo
+r now.") }
+    |                
+     ^^^ help: if thi
+s is intentional, pre
+fix it with an unders
+core: `_dir`
+    |
+    = note: `#[warn(u
+nused_variables)]` (p
+art of `#[warn(unused
+)]`) on by default
+
+warning: unused varia
+ble: `name`
+   --> src\templates.
+rs:801:33
+    |
+801 | fn scaffold_exp
+ress(dir: &Path, name
+: &str) -> Result<()>
+ { anyhow::bail!("JS 
+templates coming soon
+! Use 'express-ts' fo
+r now.") }
+    |                
+                 ^^^^
+ help: if this is int
+entional, prefix it w
+ith an underscore: `_
+name`
+
+warning: unused varia
+ble: `dir`
+   --> src\templates.
+rs:802:24
+    |
+802 | fn scaffold_vit
+e_react(dir: &Path, n
+ame: &str) -> Result<
+()> { anyhow::bail!("
+JS templates coming s
+oon! Use 'vite-react-
+ts' for now.") }
+    |                
+        ^^^ help: if 
+this is intentional, 
+prefix it with an und
+erscore: `_dir`
+
+warning: unused varia
+ble: `name`
+   --> src\templates.
+rs:802:36
+    |
+802 | fn scaffold_vit
+e_react(dir: &Path, n
+ame: &str) -> Result<
+()> { anyhow::bail!("
+JS templates coming s
+oon! Use 'vite-react-
+ts' for now.") }
+    |                
+                    ^
+^^^ help: if this is 
+intentional, prefix i
+t with an underscore:
+ `_name`
+
+warning: unused varia
+ble: `dir`
+   --> src\templates.
+rs:803:22
+    |
+803 | fn scaffold_vit
+e_vue(dir: &Path, nam
+e: &str) -> Result<()
+> { anyhow::bail!("JS
+ templates coming soo
+n! Use 'vite-vue-ts' 
+for now.") }
+    |                
+      ^^^ help: if th
+is is intentional, pr
+efix it with an under
+score: `_dir`
+
+warning: unused varia
+ble: `name`
+   --> src\templates.
+rs:803:34
+    |
+803 | fn scaffold_vit
+e_vue(dir: &Path, nam
+e: &str) -> Result<()
+> { anyhow::bail!("JS
+ templates coming soo
+n! Use 'vite-vue-ts' 
+for now.") }
+    |                
+                  ^^^
+^ help: if this is in
+tentional, prefix it 
+with an underscore: `
+_name`
+
+warning: unused varia
+ble: `dir`
+   --> src\templates.
+rs:804:25
+    |
+804 | fn scaffold_vit
+e_svelte(dir: &Path, 
+name: &str) -> Result
+<()> { anyhow::bail!(
+"JS templates coming 
+soon! Use 'vite-svelt
+e-ts' for now.") }
+    |                
+         ^^^ help: if
+ this is intentional,
+ prefix it with an un
+derscore: `_dir`
+
+warning: unused varia
+ble: `name`
+   --> src\templates.
+rs:804:37
+    |
+804 | fn scaffold_vit
+e_svelte(dir: &Path, 
+name: &str) -> Result
+<()> { anyhow::bail!(
+"JS templates coming 
+soon! Use 'vite-svelt
+e-ts' for now.") }
+    |                
+                     
+^^^^ help: if this is
+ intentional, prefix 
+it with an underscore
+: `_name`
+
+warning: unused varia
+ble: `dir`
+   --> src\templates.
+rs:805:26
+    |
+805 | fn scaffold_vit
+e_vanilla(dir: &Path,
+ name: &str) -> Resul
+t<()> { anyhow::bail!
+("JS templates coming
+ soon! Use 'vite-vani
+lla-ts' for now.") }
+    |                
+          ^^^ help: i
+f this is intentional
+, prefix it with an u
+nderscore: `_dir`
+
+warning: unused varia
+ble: `name`
+   --> src\templates.
+rs:805:38
+    |
+805 | fn scaffold_vit
+e_vanilla(dir: &Path,
+ name: &str) -> Resul
+t<()> { anyhow::bail!
+("JS templates coming
+ soon! Use 'vite-vani
+lla-ts' for now.") }
+    |                
+                     
+ ^^^^ help: if this i
+s intentional, prefix
+ it with an underscor
+e: `_name`
+
+warning: unused varia
+ble: `dir`
+   --> src\templates.
+rs:806:23
+    |
+806 | fn scaffold_sim
+ple_js(dir: &Path, na
+me: &str) -> Result<(
+)> { anyhow::bail!("J
+S templates coming so
+on! Use 'simple-ts' f
+or now.") }
+    |                
+       ^^^ help: if t
+his is intentional, p
+refix it with an unde
+rscore: `_dir`
+
+warning: unused varia
+ble: `name`
+   --> src\templates.
+rs:806:35
+    |
+806 | fn scaffold_sim
+ple_js(dir: &Path, na
+me: &str) -> Result<(
+)> { anyhow::bail!("J
+S templates coming so
+on! Use 'simple-ts' f
+or now.") }
+    |                
+                   ^^
+^^ help: if this is i
+ntentional, prefix it
+ with an underscore: 
+`_name`
+
+warning: unused varia
+ble: `registry_url`
+   --> src\main.rs:54
+5:21
+    |
+545 |                
+ let registry_url = c
+onfig.registry.clone(
+);
+    |                
+     ^^^^^^^^^^^^ hel
+p: if this is intenti
+onal, prefix it with 
+an underscore: `_regi
+stry_url`
+
+warning: variable doe
+s not need to be muta
+ble
+   --> src\main.rs:55
+3:21
+    |
+553 |                
+ let mut lockfile_clo
+ne = manifest::Crabby
+Lock::load().unwrap_o
+r_default();
+    |                
+     ----^^^^^^^^^^^^
+^^
+    |                
+     |
+    |                
+     help: remove thi
+s `mut`
+
+warning: variable doe
+s not need to be muta
+ble
+   --> src\main.rs:59
+3:29
+    |
+593 |                
+         let mut pkg 
+= manifest::PackageJs
+on::load()?;
+    |                
+             ----^^^
+    |                
+             |
+    |                
+             help: re
+move this `mut`
+
+For more information 
+about this error, try
+ `rustc --explain E03
+82`.
+warning: `crabby` (bi
+n "crabby") generated
+ 24 warnings
+error: could not comp
+ile `crabby` (bin "cr
+abby") due to 1 previ
+ous error; 24 warning
+s emitted
