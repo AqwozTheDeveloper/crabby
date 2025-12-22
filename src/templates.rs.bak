@@ -19,7 +19,7 @@ pub const TEMPLATES: &[Template] = &[
     // Frontend Templates - React
     Template { name: "vite-react-ts", description: "Vite + React + TypeScript" },
     Template { name: "vite-react", description: "Vite + React + JavaScript" },
-    Template { name: "next-app", description: "Next.js 14 App Router + TypeScript" },
+    Template { name: "next-app", description: "Next.js 14 App Router with TypeScript" },
     
     // Frontend Templates - Vue
     Template { name: "vite-vue-ts", description: "Vite + Vue 3 + TypeScript" },
