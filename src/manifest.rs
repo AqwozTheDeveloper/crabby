@@ -113,17 +113,15 @@ impl CrabbyLock {
     }
 }
 
-pub fn ensure_package_files() -> Result<()> {
+pub fn ensure_package_files(project_name: Option<&str>) -> Result<()> {
     if !Path::new("package.json").exists() {
+        let name = project_name.unwrap_or("my-crabby-project").to_string();
         let pkg = PackageJson {
-            name: "my-crabby-project".to_string(),
+            name,
             version: "1.0.0".to_string(),
             ..Default::default()
         };
         pkg.save().context("Failed to create package.json")?;
     }
-    
-    // We don't necessarily need to create an empty lockfile on init, but we can if we want to be explicit.
-    // For now, let's leave it to be created on first install.
     Ok(())
 }

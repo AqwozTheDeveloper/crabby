@@ -103,6 +103,7 @@ pub async fn fetch_package_version(name: &str, registry_url: &str, version_req: 
 // Shared state for recursion
 struct InstallState {
     visited: Mutex<HashSet<String>>,
+    package_locks: Mutex<HashMap<String, Arc<Mutex<()>>>>,
     lockfile: Mutex<crate::manifest::CrabbyLock>,
     client: reqwest::Client,
     registry_url: String,
@@ -112,6 +113,7 @@ struct InstallState {
 pub async fn install_package(name: &str, registry_url: &str, client: &reqwest::Client, lockfile: crate::manifest::CrabbyLock) -> Result<(String, String, crate::manifest::CrabbyLock)> {
     let state = Arc::new(InstallState {
         visited: Mutex::new(HashSet::new()),
+        package_locks: Mutex::new(HashMap::new()),
         lockfile: Mutex::new(lockfile),
         client: client.clone(),
         registry_url: registry_url.to_string(),
@@ -167,9 +169,17 @@ fn install_package_recursive(name: String, version_req: Option<String>, state: A
 
         println!("{} Resolving {} {}", crate::ui::Icons::SEARCH, style(&name).cyan(), style(version_req.as_deref().unwrap_or("latest")).dim());
 
+        // Acquire per-package lock to prevent concurrent extraction of the same package name
+        let pkg_lock = {
+            let mut locks = state.package_locks.lock().await;
+            locks.entry(name.clone()).or_insert_with(|| Arc::new(Mutex::new(()))).clone()
+        };
+        
+        let _lock_guard = pkg_lock.lock().await;
+
         let (version, tarball, checksum) = fetch_package_version(&name, &state.registry_url, version_req.as_deref(), &state.client).await?;
         
-        // Acquire permit for download
+        // Acquire permit for download slots
         let _permit = state.semaphore.acquire().await?;
         download_and_extract(&name, &version, &tarball, &state.client, Some(&checksum)).await?;
         drop(_permit);
@@ -381,6 +391,7 @@ pub async fn download_and_extract(name: &str, version: &str, tarball_url: &str, 
 pub async fn install_all_packages(deps: &HashMap<String, String>, registry_url: &str, client: &reqwest::Client, lockfile: crate::manifest::CrabbyLock) -> Result<crate::manifest::CrabbyLock> {
     let state = Arc::new(InstallState {
         visited: Mutex::new(HashSet::new()),
+        package_locks: Mutex::new(HashMap::new()),
         lockfile: Mutex::new(lockfile),
         client: client.clone(),
         registry_url: registry_url.to_string(),

@@ -191,7 +191,23 @@ async fn main() -> Result<()> {
         Commands::Init => {
             print!("{} ", style("🦀").bold().cyan());
             println!("{}", style("Initializing Crabby Kitchen...").bold());
-            manifest::ensure_package_files()?;
+            
+            use std::io::{self, Write};
+            
+            // Ask for project name
+            print!("\n{} Project name [default: current directory]: ", style("❓").bold().yellow());
+            io::stdout().flush()?;
+            let mut name_input = String::new();
+            io::stdin().read_line(&mut name_input)?;
+            let project_name = name_input.trim();
+            
+            let name_opt = if project_name.is_empty() {
+                None
+            } else {
+                Some(project_name)
+            };
+
+            manifest::ensure_package_files(name_opt)?;
             println!("{}", style("Created package.json").green());
             
             // Create default config file
@@ -206,8 +222,7 @@ async fn main() -> Result<()> {
             }
             
             // Ask for project type
-            use std::io::{self, Write};
-            print!("\n{} TypeScript or JavaScript? (ts/js) [default: ts]: ", style("❓").bold().yellow());
+            print!("{} TypeScript or JavaScript? (ts/js) [default: ts]: ", style("❓").bold().yellow());
             io::stdout().flush()?;
             
             let mut input = String::new();
