@@ -195,20 +195,25 @@ async fn main() -> Result<()> {
             use std::io::{self, Write};
             
             // Ask for project name
-            print!("\n{} Project name [default: current directory]: ", style("❓").bold().yellow());
+            let current_dir = std::env::current_dir()?;
+            let dir_name = current_dir.file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or("my-crabby-project");
+
+            print!("\n{} Project name [default: {}]: ", style("❓").bold().yellow(), style(dir_name).dim());
             io::stdout().flush()?;
             let mut name_input = String::new();
             io::stdin().read_line(&mut name_input)?;
-            let project_name = name_input.trim();
+            let trimmed_name = name_input.trim();
             
-            let name_opt = if project_name.is_empty() {
-                None
+            let final_project_name = if trimmed_name.is_empty() {
+                dir_name.to_string()
             } else {
-                Some(project_name)
+                trimmed_name.to_string()
             };
 
-            manifest::ensure_package_files(name_opt)?;
-            println!("{}", style("Created package.json").green());
+            manifest::ensure_package_files(Some(&final_project_name))?;
+            println!("{}", style("Created/Updated package.json").green());
             
             // Create default config file
             let config_path = std::path::Path::new("crabby.config.json");

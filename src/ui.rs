@@ -7,6 +7,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 
 pub struct Icons;
 
+#[allow(dead_code)]
 impl Icons {
     // Package Operations
     pub const PACKAGE: &'static str = "📦";

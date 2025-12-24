@@ -26,7 +26,7 @@ pub async fn check_and_upgrade() -> Result<()> {
         io::stdin().read_line(&mut input)?;
         
         if input.trim().to_lowercase() == "y" {
-            perform_upgrade().await?;
+            perform_upgrade(&latest_version).await?;
         } else {
             println!("{} Upgrade cancelled.", style("❌").red());
         }
@@ -69,7 +69,7 @@ fn is_newer(latest: &str, current: &str) -> bool {
     v_latest > v_current
 }
 
-async fn perform_upgrade() -> Result<()> {
+async fn perform_upgrade(latest_version: &str) -> Result<()> {
     // Determine target location (same as installer)
     let home = dirs::home_dir().context("Could not find home directory")?;
     let crabby_dir = home.join(".crabby");
@@ -154,7 +154,7 @@ async fn perform_upgrade() -> Result<()> {
     
     std::fs::copy(&source_path, &target_path).context("Failed to copy new binary to installation directory.")?;
     
-    println!("\n{} Crabby upgraded successfully to v{}!", style("🎉").bold().green(), fetch_latest_version().await.unwrap_or_default());
+    println!("\n{} Crabby upgraded successfully to v{}!", style("🎉").bold().green(), latest_version);
     println!("{} Run {} to verify the new version.", style("💡").dim(), style("crabby --version").cyan());
     
     Ok(())

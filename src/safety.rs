@@ -85,6 +85,7 @@ fn copy_dir_recursive(src: &Path, dst: &Path) -> Result<()> {
 }
 
 /// Validate package.json structure
+#[allow(dead_code)]
 pub fn validate_package_json(content: &str) -> Result<()> {
     let _: serde_json::Value = serde_json::from_str(content)
         .context("Invalid JSON in package.json")?;
@@ -94,6 +95,7 @@ pub fn validate_package_json(content: &str) -> Result<()> {
 }
 
 /// Validate lock file integrity
+#[allow(dead_code)]
 pub fn validate_lockfile(lockfile: &crate::manifest::CrabbyLock) -> Result<()> {
     // Check for circular dependencies
     // Check for missing packages

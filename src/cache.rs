@@ -4,6 +4,7 @@ use std::fs;
 use sha1::{Sha1, Digest};
 
 /// Get the cache directory path (~/.crabby/cache)
+#[allow(dead_code)]
 pub fn get_cache_dir() -> Result<PathBuf> {
     let home = dirs::home_dir()
         .context("Could not determine home directory")?;
@@ -14,18 +15,18 @@ pub fn get_cache_dir() -> Result<PathBuf> {
     Ok(cache_dir)
 }
 
-/// Get package cache path
+#[allow(dead_code)]
 pub fn get_package_cache_path(name: &str, version: &str) -> Result<PathBuf> {
     let cache_dir = get_cache_dir()?;
     let packages_dir = cache_dir.join("packages");
     fs::create_dir_all(&packages_dir)?;
     
-    let safe_name = name.replace("/", "_");  // Handle scoped packages like @types/node
+    let safe_name = name.replace("/", "_");
     let filename = format!("{}-{}.tgz", safe_name, version);
     Ok(packages_dir.join(filename))
 }
 
-/// Check if a package is cached
+#[allow(dead_code)]
 pub fn is_cached(name: &str, version: &str, expected_checksum: Option<&str>) -> Result<bool> {
     let cache_path = get_package_cache_path(name, version)?;
     
@@ -42,7 +43,7 @@ pub fn is_cached(name: &str, version: &str, expected_checksum: Option<&str>) -> 
     Ok(true)
 }
 
-/// Save package to cache
+#[allow(dead_code)]
 pub fn save_to_cache(name: &str, version: &str, data: &[u8]) -> Result<PathBuf> {
     let cache_path = get_package_cache_path(name, version)?;
     fs::write(&cache_path, data)
@@ -52,7 +53,7 @@ pub fn save_to_cache(name: &str, version: &str, data: &[u8]) -> Result<PathBuf> 
     Ok(cache_path)
 }
 
-/// Load package from cache
+#[allow(dead_code)]
 pub fn load_from_cache(name: &str, version: &str) -> Result<Vec<u8>> {
     let cache_path = get_package_cache_path(name, version)?;
     println!("{} Loading from cache", console::style("⚡").cyan());
@@ -61,7 +62,7 @@ pub fn load_from_cache(name: &str, version: &str) -> Result<Vec<u8>> {
         .context("Failed to read package from cache")
 }
 
-/// Calculate SHA-1 checksum of a file
+#[allow(dead_code)]
 fn calculate_file_checksum(path: &Path) -> Result<String> {
     let data = fs::read(path)?;
     let mut hasher = Sha1::new();
@@ -69,7 +70,7 @@ fn calculate_file_checksum(path: &Path) -> Result<String> {
     Ok(format!("{:x}", hasher.finalize()))
 }
 
-/// Clear cache (for cleanup)
+#[allow(dead_code)]
 pub fn clear_cache() -> Result<()> {
     let cache_dir = get_cache_dir()?;
     
@@ -82,7 +83,7 @@ pub fn clear_cache() -> Result<()> {
     Ok(())
 }
 
-/// Get cache statistics
+#[allow(dead_code)]
 pub fn get_cache_stats() -> Result<(usize, u64)> {
     let cache_dir = get_cache_dir()?;
     let packages_dir = cache_dir.join("packages");

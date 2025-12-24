@@ -114,14 +114,26 @@ impl CrabbyLock {
 }
 
 pub fn ensure_package_files(project_name: Option<&str>) -> Result<()> {
-    if !Path::new("package.json").exists() {
-        let name = project_name.unwrap_or("my-crabby-project").to_string();
-        let pkg = PackageJson {
-            name,
+    let mut pkg = if Path::new("package.json").exists() {
+        PackageJson::load()?
+    } else {
+        PackageJson {
             version: "1.0.0".to_string(),
             ..Default::default()
-        };
-        pkg.save().context("Failed to create package.json")?;
+        }
+    };
+
+    if let Some(name) = project_name {
+        pkg.name = name.to_string();
+    } else if pkg.name.is_empty() {
+        // Fallback to directory name if name is missing
+        let current_dir = std::env::current_dir()?;
+        let dir_name = current_dir.file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("my-crabby-project");
+        pkg.name = dir_name.to_string();
     }
+
+    pkg.save().context("Failed to save package.json during initialization")?;
     Ok(())
 }
