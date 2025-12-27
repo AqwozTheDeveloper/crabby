@@ -358,7 +358,7 @@ app.listen(port, () => {
                 let cmd = match tsx_utils::get_tsx_command() {
                     Ok(tsx_utils::TsxCommand::NodeMjs(p)) => format!("node \"{}\" {}", p.to_string_lossy(), ts_file),
                     Ok(tsx_utils::TsxCommand::Executable(p)) => format!("\"{}\" {}", p.to_string_lossy(), ts_file),
-                    Err(_) => format!("node node_modules/tsx/dist/cli.mjs {}", ts_file),
+                    Err(_) => format!("{} --import tsx {}", node_str, ts_file),
                 };
                 (cmd, Some(ts_file.clone()), true)
             } else if let Some(js_file) = js {
