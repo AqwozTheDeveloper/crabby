@@ -368,8 +368,11 @@ app.listen(port, () => {
                 if path.exists() && (script_name.ends_with(".js") || script_name.ends_with(".ts")) {
                     if script_name.ends_with(".ts") {
                         let script_name_norm = script_name.replace("\\", "/");
-                        // Simplified for debug
-                        let cmd = format!("{} --loader tsx {}", node_str, script_name_norm);
+                        let cmd = match tsx_utils::get_tsx_command() {
+                            Ok(tsx_utils::TsxCommand::NodeMjs(p)) => format!("node \"{}\" {}", p.to_string_lossy(), script_name_norm),
+                            Ok(tsx_utils::TsxCommand::Executable(p)) => format!("\"{}\" {}", p.to_string_lossy(), script_name_norm),
+                            Err(_) => format!("{} --import tsx {}", node_str, script_name_norm),
+                        };
                         (cmd, Some(script_name_norm), true)
                     } else {
                         let script_name_norm = script_name.replace("\\", "/");
