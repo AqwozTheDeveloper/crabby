@@ -43,7 +43,41 @@ pub fn spawn_script(command_str: &str, cwd: Option<&std::path::Path>, node_path:
     
     let new_path_env = env::join_paths(paths)?;
 
-    let mut command = Command::new(cmd_name);
+    let mut command_name = cmd_name.to_string();
+    
+    #[cfg(target_os = "windows")]
+    {
+        let path = working_dir.join(&command_name);
+        if !path.exists() {
+            // Check for common Windows extensions
+            for ext in &["cmd", "bat", "exe"] {
+                let path_with_ext = path.with_extension(ext);
+                if path_with_ext.exists() {
+                    command_name = path_with_ext.to_string_lossy().to_string();
+                    break;
+                }
+            }
+        }
+        
+        // Also check node_modules/.bin specifically if not found
+        if !Path::new(&command_name).is_absolute() && !command_name.contains('/') && !command_name.contains('\\') {
+             for ext in &["cmd", "bat", "exe"] {
+                let bin_full_path = bin_path.join(format!("{}.{}", command_name, ext));
+                if bin_full_path.exists() {
+                    command_name = bin_full_path.to_string_lossy().to_string();
+                    break;
+                }
+            }
+        }
+    }
+
+    let mut command = if cfg!(target_os = "windows") {
+        let mut cmd = Command::new("cmd");
+        cmd.arg("/C").arg(&command_name);
+        cmd
+    } else {
+        Command::new(&command_name)
+    };
     command.args(args)
            .current_dir(&working_dir)
            .env("PATH", new_path_env)
