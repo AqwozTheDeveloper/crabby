@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use console::style;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::Path;
@@ -9,7 +9,7 @@ use tar::Archive;
 use std::sync::Arc;
 use tokio::sync::{Mutex, Semaphore};
 
-use crate::{manifest, runner, registry};
+use crate::runner;
 
 #[derive(Debug, Deserialize)]
 pub struct PackageMetadata {

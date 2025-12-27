@@ -1,5 +1,5 @@
 use crate::manifest::{CrabbyLock, PackageJson};
-use console::style;
+
 
 pub fn find_dependency_paths(lock: &CrabbyLock, pkg: &PackageJson, target: &str) -> Vec<Vec<String>> {
     let mut paths = Vec::new();

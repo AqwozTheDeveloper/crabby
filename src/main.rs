@@ -21,7 +21,7 @@ use clap::{Parser, Subcommand};
 use console::style;
 use anyhow::Result;
 use std::path::Path;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::fs;
 
 const MAX_CONCURRENT_DOWNLOADS: usize = 10;
@@ -430,7 +430,6 @@ app.listen(port, () => {
                 println!("\n{} {}", style("👀 Watch Mode Enabled").bold().blue(), style(&cmd_template).cyan());
                 
                 use notify::{Watcher, RecursiveMode};
-                use dialoguer::{theme::ColorfulTheme, Select, FuzzySelect};
                 use std::sync::mpsc::channel;
                 
                 // Determine what to watch
@@ -562,7 +561,7 @@ app.listen(port, () => {
             if !packages.is_empty() {
                 let mut lockfile = manifest::CrabbyLock::load().unwrap_or_default();
                 let config = config::load_config()?;
-                let registry_url = config.registry.clone();
+                let _registry_url = config.registry.clone();
                 let mut pkg_json = manifest::PackageJson::load()?;
                 
                 for pkg_name in packages {
@@ -570,7 +569,7 @@ app.listen(port, () => {
                     
                     let pkg_name_clone = pkg_name.clone();
                 let registry_url_clone = config.registry.clone();
-                let mut lockfile_clone = manifest::CrabbyLock::load().unwrap_or_default();
+                let lockfile_clone = manifest::CrabbyLock::load().unwrap_or_default();
                 
                 let client = registry::get_client()?;
                 // install_package now returns (version, tarball, updated_lockfile)
@@ -610,7 +609,7 @@ app.listen(port, () => {
                         let original_cwd = std::env::current_dir()?;
                         std::env::set_current_dir(&ws_path)?;
                         
-                        let mut pkg = manifest::PackageJson::load()?;
+                        let pkg = manifest::PackageJson::load()?;
                         let lockfile = manifest::CrabbyLock::load().unwrap_or_default();
                         let all_deps = pkg.get_all_dependencies();
                         

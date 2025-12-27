@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use console::style;
 use std::fs;
 use std::path::{Path, PathBuf};
-use crate::{manifest, package_utils, runner, registry, config, global};
+use crate::{manifest, package_utils, registry, config};
 
 /// Get global installation directory (~/.crabby/global)
 pub fn get_global_dir() -> Result<PathBuf> {
@@ -59,7 +59,7 @@ pub async fn install_global(package: &str) -> Result<()> {
     std::env::set_current_dir(&global_dir)?;
     
     // Install package
-    let mut lockfile = manifest::CrabbyLock::load().unwrap_or_default();
+    let lockfile = manifest::CrabbyLock::load().unwrap_or_default();
     let result = package_utils::install_package(package, &config.registry, &client, lockfile).await;
     
     // Restore CWD
