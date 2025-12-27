@@ -564,7 +564,7 @@ app.listen(port, () => {
                 let _registry_url = config.registry.clone();
                 let mut pkg_json = manifest::PackageJson::load()?;
                 
-                for pkg_name in &packages {
+                for pkg_name in packages {
                     println!("{} Installing {}...", ui::Icons::INSTALL, style(&pkg_name).cyan());
                     
                     let pkg_name_clone = pkg_name.clone();

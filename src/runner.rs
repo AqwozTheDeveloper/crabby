@@ -33,7 +33,7 @@ pub fn spawn_script(command_str: &str, cwd: Option<&std::path::Path>, node_path:
     let bin_path = working_dir.join("node_modules").join(".bin");
     
     let mut paths = env::split_paths(&path_env).collect::<Vec<_>>();
-    paths.insert(0, bin_path);
+    paths.insert(0, bin_path.clone());
     
     // If custom Node.js path provided, add its directory to PATH
     if let Some(node) = node_path {
