@@ -150,7 +150,7 @@ enum Commands {
     Audit,
     /// Execute a package binary (npx alternative)
     #[command(alias = "x", alias = "exec")]
-    Exec {
+    Execute {
         /// The binary to execute
         binary: String,
         
@@ -175,7 +175,7 @@ async fn main() -> Result<()> {
         Commands::Audit => {
             audit::check_vulnerabilities().await?;
         }
-        Commands::Exec { binary, args } => {
+        Commands::Execute { binary, args } => {
             let command_str = if args.is_empty() {
                 binary.clone()
             } else {
@@ -369,11 +369,11 @@ app.listen(port, () => {
                     if script_name.ends_with(".ts") {
                         let script_name_norm = script_name.replace("\\", "/");
                         // Simplified for debug
-                        let cmd = format!("node --loader tsx {}", script_name_norm);
+                        let cmd = format!("{} --loader tsx {}", node_str, script_name_norm);
                         (cmd, Some(script_name_norm), true)
                     } else {
                         let script_name_norm = script_name.replace("\\", "/");
-                        let cmd = format!("node {}", script_name_norm);
+                        let cmd = format!("{} {}", node_str, script_name_norm);
                         (cmd, Some(script_name_norm), false)
                     }
                 } else {

@@ -1,0 +1,1051 @@
+﻿cargo : warning: unus
+ed import: `Serialize
+`
+At line:1 char:29
++ ... nv:RUST_BACKTRA
+CE="full"; cargo run 
+-- --version 2> trace
+.txt; cat tr ...
++                    
+           ~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~
+    + CategoryInfo   
+           : NotSpe  
+  cified: (warning   
+ : unused import:    
+ `Serialize`:Str    i
+ng) [], RemoteE    xc
+eption
+    + FullyQualified 
+   ErrorId : Native  
+  CommandError
+ 
+ --> src\package_util
+s.rs:3:26
+  |
+3 | ...e, Serialize};
+  |       ^^^^^^^^^
+  |
+  = note: `#[warn(unu
+sed_imports)]` (part 
+of `#[warn(unused)]`)
+ on by default
+
+warning: unused impor
+ts: `manifest` and `r
+egistry`
+  --> src\package_uti
+ls.rs:12:13
+   |
+12 | ...::{manifest, 
+runner, registry};
+   |       ^^^^^^^^  
+        ^^^^^^^^
+
+warning: unused impor
+t: `console::style`
+ --> src\search.rs:2:
+5
+  |
+2 | use console::styl
+e;
+  |     ^^^^^^^^^^^^^
+^
+
+warning: unused impor
+ts: `global` and `run
+ner`
+ --> src\global.rs:5:
+38
+  |
+5 | ...s, runner, reg
+istry, config, global
+};
+  |       ^^^^^^     
+               ^^^^^^
+
+warning: unused impor
+t: `Context`
+ --> src\templates.rs
+:1:22
+  |
+1 | ...t, Context};
+  |       ^^^^^^^
+
+warning: unused impor
+t: `console::style`
+ --> src\explorer.rs:
+2:5
+  |
+2 | use console::styl
+e;
+  |     ^^^^^^^^^^^^^
+^
+
+warning: unused impor
+t: `HashMap`
+  --> src\main.rs:24:
+24
+   |
+24 | ...::{HashMap, H
+...
+   |       ^^^^^^^
+
+warning: unused impor
+ts: `FuzzySelect`, `S
+elect`, and `theme::C
+olorfulTheme`
+   --> src\main.rs:43
+3:33
+    |
+433 | ...::{theme::Co
+lorfulTheme, Select, 
+FuzzySelect};
+    |       ^^^^^^^^^
+^^^^^^^^^^^  ^^^^^^  
+^^^^^^^^^^^
+
+warning: variable doe
+s not need to be muta
+ble
+  --> src\global.rs:6
+2:9
+   |
+62 | ...et mut lockfi
+le = ...
+   |       ----^^^^^^
+^^
+   |       |
+   |       help: remo
+ve this `mut`
+   |
+   = note: `#[warn(un
+used_mut)]` (part of 
+`#[warn(unused)]`) on
+ by default
+
+warning: unused varia
+ble: `dir`
+   --> src\templates.
+rs:801:21
+    |
+801 | ...ss(dir: &Pa.
+..
+    |       ^^^ help:
+ if this is intention
+al, prefix it with an
+ underscore: `_dir`
+    |
+    = note: `#[warn(u
+nused_variables)]` (p
+art of `#[warn(unused
+)]`) on by default
+
+warning: unused varia
+ble: `name`
+   --> src\templates.
+rs:801:33
+    |
+801 | ...h, name: &s.
+..
+    |       ^^^^ help
+: if this is intentio
+nal, prefix it with a
+n underscore: `_name`
+
+warning: unused varia
+ble: `dir`
+   --> src\templates.
+rs:802:24
+    |
+802 | ...ct(dir: &Pa.
+..
+    |       ^^^ help:
+ if this is intention
+al, prefix it with an
+ underscore: `_dir`
+
+warning: unused varia
+ble: `name`
+   --> src\templates.
+rs:802:36
+    |
+802 | ...h, name: &s.
+..
+    |       ^^^^ help
+: if this is intentio
+nal, prefix it with a
+n underscore: `_name`
+
+warning: unused varia
+ble: `dir`
+   --> src\templates.
+rs:803:22
+    |
+803 | ...ue(dir: &Pa.
+..
+    |       ^^^ help:
+ if this is intention
+al, prefix it with an
+ underscore: `_dir`
+
+warning: unused varia
+ble: `name`
+   --> src\templates.
+rs:803:34
+    |
+803 | ...h, name: &s.
+..
+    |       ^^^^ help
+: if this is intentio
+nal, prefix it with a
+n underscore: `_name`
+
+warning: unused varia
+ble: `dir`
+   --> src\templates.
+rs:804:25
+    |
+804 | ...te(dir: &Pa.
+..
+    |       ^^^ help:
+ if this is intention
+al, prefix it with an
+ underscore: `_dir`
+
+warning: unused varia
+ble: `name`
+   --> src\templates.
+rs:804:37
+    |
+804 | ...h, name: &s.
+..
+    |       ^^^^ help
+: if this is intentio
+nal, prefix it with a
+n underscore: `_name`
+
+warning: unused varia
+ble: `dir`
+   --> src\templates.
+rs:805:26
+    |
+805 | ...la(dir: &Pa.
+..
+    |       ^^^ help:
+ if this is intention
+al, prefix it with an
+ underscore: `_dir`
+
+warning: unused varia
+ble: `name`
+   --> src\templates.
+rs:805:38
+    |
+805 | ...h, name: &s.
+..
+    |       ^^^^ help
+: if this is intentio
+nal, prefix it with a
+n underscore: `_name`
+
+warning: unused varia
+ble: `dir`
+   --> src\templates.
+rs:806:23
+    |
+806 | ...js(dir: &Pa.
+..
+    |       ^^^ help:
+ if this is intention
+al, prefix it with an
+ underscore: `_dir`
+
+warning: unused varia
+ble: `name`
+   --> src\templates.
+rs:806:35
+    |
+806 | ...h, name: &s.
+..
+    |       ^^^^ help
+: if this is intentio
+nal, prefix it with a
+n underscore: `_name`
+
+warning: unused varia
+ble: `registry_url`
+   --> src\main.rs:56
+5:21
+    |
+565 | ...et registry_
+url = ...
+    |       ^^^^^^^^^
+^^^ help: if this is 
+intentional, prefix i
+t with an underscore:
+ `_registry_url`
+
+warning: variable doe
+s not need to be muta
+ble
+   --> src\main.rs:57
+3:21
+    |
+573 | ...et mut lockf
+ile_clone = ...
+    |       ----^^^^^
+^^^^^^^^^
+    |       |
+    |       help: rem
+ove this `mut`
+
+warning: variable doe
+s not need to be muta
+ble
+   --> src\main.rs:61
+3:29
+    |
+613 | ...et mut pkg =
+ ...
+    |       ----^^^
+    |       |
+    |       help: rem
+ove this `mut`
+
+warning: field `name`
+ is never read
+  --> src\package_uti
+ls.rs:16:9
+   |
+15 | ...truct Package
+Metadata {
+   |          -------
+-------- field in thi
+s struct
+16 | ...ub name: Stri
+ng,
+   |       ^^^^
+   |
+   = note: `PackageMe
+tadata` has a derived
+ impl for the trait `
+Debug`, but this is i
+ntentionally ignored 
+during dead code anal
+ysis
+   = note: `#[warn(de
+ad_code)]` (part of `
+#[warn(unused)]`) on 
+by default
+
+warning: field `versi
+on` is never read
+  --> src\package_uti
+ls.rs:29:9
+   |
+28 | ...truct Package
+Version {
+   |          -------
+------- field in this
+ struct
+29 | ...ub version: S
+tring,
+   |       ^^^^^^^
+   |
+   = note: `PackageVe
+rsion` has a derived 
+impl for the trait `D
+ebug`, but this is in
+tentionally ignored d
+uring dead code analy
+sis
+
+warning: function `ru
+n_script_with_node` i
+s never used
+  --> src\runner.rs:1
+1:8
+   |
+11 | ...fn run_script
+_with_node(co...
+   |       ^^^^^^^^^^
+^^^^^^^^^^
+
+warning: field `versi
+on` is never read
+  --> src\update.rs:1
+5:5
+   |
+14 | struct VersionIn
+fo {
+   |        ---------
+-- field in this stru
+ct
+15 |     version: Str
+ing,
+   |     ^^^^^^^
+   |
+   = note: `VersionIn
+fo` has a derived imp
+l for the trait `Debu
+g`, but this is inten
+tionally ignored duri
+ng dead code analysis
+
+warning: field `keywo
+rds` is never read
+  --> src\search.rs:2
+1:5
+   |
+17 | struct PackageIn
+fo {
+   |        ---------
+-- field in this stru
+ct
+...
+21 |     keywords: Op
+tion<...
+   |     ^^^^^^^^
+
+warning: function `pr
+int_section` is never
+ used
+  --> src\ui.rs:77:8
+   |
+77 | ...fn print_sect
+ion(ti...
+   |       ^^^^^^^^^^
+^^^
+
+warning: function `pr
+int_item` is never us
+ed
+  --> src\ui.rs:81:8
+   |
+81 | ...fn print_item
+(ic...
+   |       ^^^^^^^^^^
+
+warning: function `pr
+int_tree_item` is nev
+er used
+  --> src\ui.rs:89:8
+   |
+89 | ...fn print_tree
+_item(is...
+   |       ^^^^^^^^^^
+^^^^^
+
+warning: function `cr
+eate_progress_bar` is
+ never used
+   --> src\ui.rs:107:
+8
+    |
+107 | ...fn create_pr
+ogress_bar(to...
+    |       ^^^^^^^^^
+^^^^^^^^^^
+
+warning: function `cr
+eate_spinner` is neve
+r used
+   --> src\ui.rs:119:
+8
+    |
+119 | ...fn create_sp
+inner(me...
+    |       ^^^^^^^^^
+^^^^^
+
+warning: function `fo
+rmat_size` is never u
+sed
+   --> src\ui.rs:219:
+8
+    |
+219 | ...fn format_si
+ze(by...
+    |       ^^^^^^^^^
+^^
+
+warning: function `fo
+rmat_duration` is nev
+er used
+   --> src\ui.rs:236:
+8
+    |
+236 | ...fn format_du
+ration(ms...
+    |       ^^^^^^^^^
+^^^^^^
+
+warning: function `fo
+rmat_number` is never
+ used
+   --> src\ui.rs:248:
+8
+    |
+248 | ...fn format_nu
+mber(nu...
+    |       ^^^^^^^^^
+^^^^
+
+warning: `crabby` (bi
+n "crabby") generated
+ 37 warnings (run `ca
+rgo fix --bin "crabby
+"` to apply 11 sugges
+tions)
+    Finished `dev` pr
+ofile [unoptimized + 
+debuginfo] target(s) 
+in 0.24s
+     Running `target\
+debug\crabby.exe --ve
+rsion`
+
+thread 'main' (7080) 
+panicked at C:\Users\
+amesa\.cargo\registry
+\src\index.crates.io-
+1949cf8c6b5b557f\clap
+_builder-4.5.53\src\b
+uilder\debug_asserts.
+rs:347:13:
+Command crabby: comma
+nd `exec` alias `exec
+` is duplicated
+stack backtrace:
+   0:     0x7ff6d8277
+a12 - std::backtrace_
+rs::backtrace::win64:
+:trace
+                     
+          at /rustc/e
+d61e7d7e242494fb7057f
+2657300d9e77bb4fcb/li
+brary\std\src\..\..\b
+acktrace\src\backtrac
+e\win64.rs:85
+   1:     0x7ff6d8277
+a12 - std::backtrace_
+rs::backtrace::trace_
+unsynchronized
+                     
+          at /rustc/e
+d61e7d7e242494fb7057f
+2657300d9e77bb4fcb/li
+brary\std\src\..\..\b
+acktrace\src\backtrac
+e\mod.rs:66
+   2:     0x7ff6d8277
+a12 - std::sys::backt
+race::_print_fmt
+                     
+          at /rustc/e
+d61e7d7e242494fb7057f
+2657300d9e77bb4fcb/li
+brary\std\src\sys\bac
+ktrace.rs:66
+   3:     0x7ff6d8277
+a12 - std::sys::backt
+race::impl$0::print::
+impl$0::fmt
+                     
+          at /rustc/e
+d61e7d7e242494fb7057f
+2657300d9e77bb4fcb/li
+brary\std\src\sys\bac
+ktrace.rs:39
+   4:     0x7ff6d8282
+e3a - core::fmt::rt::
+Argument::fmt
+                     
+          at /rustc/e
+d61e7d7e242494fb7057f
+2657300d9e77bb4fcb/li
+brary\core\src\fmt\rt
+.rs:173
+   5:     0x7ff6d8282
+e3a - core::fmt::writ
+e
+                     
+          at /rustc/e
+d61e7d7e242494fb7057f
+2657300d9e77bb4fcb/li
+brary\core\src\fmt\mo
+d.rs:1468
+   6:     0x7ff6d824f
+d8e - std::io::defaul
+t_write_fmt
+                     
+          at /rustc/e
+d61e7d7e242494fb7057f
+2657300d9e77bb4fcb/li
+brary\std\src\io\mod.
+rs:639
+   7:     0x7ff6d824f
+d8e - std::io::Write:
+:write_fmt<std::sys::
+stdio::windows::Stder
+r>
+                     
+          at /rustc/e
+d61e7d7e242494fb7057f
+2657300d9e77bb4fcb/li
+brary\std\src\io\mod.
+rs:1954
+   8:     0x7ff6d8262
+c05 - std::sys::backt
+race::BacktraceLock::
+print
+                     
+          at /rustc/e
+d61e7d7e242494fb7057f
+2657300d9e77bb4fcb/li
+brary\std\src\sys\bac
+ktrace.rs:42
+   9:     0x7ff6d8268
+8e9 - std::panicking:
+:default_hook::closur
+e$0
+                     
+          at /rustc/e
+d61e7d7e242494fb7057f
+2657300d9e77bb4fcb/li
+brary\std\src\panicki
+ng.rs:301
+  10:     0x7ff6d8268
+6d8 - std::panicking:
+:default_hook
+                     
+          at /rustc/e
+d61e7d7e242494fb7057f
+2657300d9e77bb4fcb/li
+brary\std\src\panicki
+ng.rs:328
+  11:     0x7ff6d8269
+22b - std::panicking:
+:panic_with_hook
+                     
+          at /rustc/e
+d61e7d7e242494fb7057f
+2657300d9e77bb4fcb/li
+brary\std\src\panicki
+ng.rs:834
+  12:     0x7ff6d8268
+ff9 - std::panicking:
+:panic_handler::closu
+re$0
+                     
+          at /rustc/e
+d61e7d7e242494fb7057f
+2657300d9e77bb4fcb/li
+brary\std\src\panicki
+ng.rs:707
+  13:     0x7ff6d8262
+e0f - std::sys::backt
+race::__rust_end_shor
+t_backtrace<std::pani
+cking::panic_handler:
+:closure_env$0,never$
+>
+                     
+          at /rustc/e
+d61e7d7e242494fb7057f
+2657300d9e77bb4fcb/li
+brary\std\src\sys\bac
+ktrace.rs:174
+  14:     0x7ff6d824b
+dbe - std::panicking:
+:panic_handler
+                     
+          at /rustc/e
+d61e7d7e242494fb7057f
+2657300d9e77bb4fcb/li
+brary\std\src\panicki
+ng.rs:698
+  15:     0x7ff6d835c
+181 - core::panicking
+::panic_fmt
+                     
+          at /rustc/e
+d61e7d7e242494fb7057f
+2657300d9e77bb4fcb/li
+brary\core\src\panick
+ing.rs:75
+  16:     0x7ff6d8020
+55d - clap_builder::b
+uilder::debug_asserts
+::assert_app
+                     
+          at C:\Users
+\amesa\.cargo\registr
+y\src\index.crates.io
+-1949cf8c6b5b557f\cla
+p_builder-4.5.53\src\
+builder\debug_asserts
+.rs:347
+  17:     0x7ff6d8039
+d9a - clap_builder::b
+uilder::command::Comm
+and::_build_self
+                     
+          at C:\Users
+\amesa\.cargo\registr
+y\src\index.crates.io
+-1949cf8c6b5b557f\cla
+p_builder-4.5.53\src\
+builder\command.rs:44
+82
+  18:     0x7ff6d8042
+1db - clap_builder::b
+uilder::command::Comm
+and::_do_parse
+                     
+          at C:\Users
+\amesa\.cargo\registr
+y\src\index.crates.io
+-1949cf8c6b5b557f\cla
+p_builder-4.5.53\src\
+builder\command.rs:43
+53
+  19:     0x7ff6d8040
+025 - clap_builder::b
+uilder::command::Comm
+and::try_get_matches_
+from_mut<std::env::Ar
+gsOs,std::ffi::os_str
+::OsString>
+                     
+          at C:\Users
+\amesa\.cargo\registr
+y\src\index.crates.io
+-1949cf8c6b5b557f\cla
+p_builder-4.5.53\src\
+builder\command.rs:90
+9
+  20:     0x7ff6d7b28
+51e - clap_builder::b
+uilder::command::Comm
+and::get_matches_from
+<std::env::ArgsOs,std
+::ffi::os_str::OsStri
+ng>
+                     
+          at C:\Users
+\amesa\.cargo\registr
+y\src\index.crates.io
+-1949cf8c6b5b557f\cla
+p_builder-4.5.53\src\
+builder\command.rs:76
+4
+  21:     0x7ff6d7b5b
+0d9 - clap_builder::b
+uilder::command::Comm
+and::get_matches
+                     
+          at C:\Users
+\amesa\.cargo\registr
+y\src\index.crates.io
+-1949cf8c6b5b557f\cla
+p_builder-4.5.53\src\
+builder\command.rs:66
+5
+  22:     0x7ff6d7b46
+8c1 - clap_builder::d
+erive::Parser::parse<
+crabby::Cli>
+                     
+          at C:\Users
+\amesa\.cargo\registr
+y\src\index.crates.io
+-1949cf8c6b5b557f\cla
+p_builder-4.5.53\src\
+derive.rs:32
+  23:     0x7ff6d7b46
+f45 - crabby::main::a
+sync_block$0
+                     
+          at C:\Users
+\amesa\Desktop\crabby
+\src\main.rs:171
+  24:     0x7ff6d7b1a
+819 - tokio::runtime:
+:park::impl$4::block_
+on::closure$0<enum2$<
+crabby::main::async_b
+lock_env$0> >
+                     
+          at C:\Users
+\amesa\.cargo\registr
+y\src\index.crates.io
+-1949cf8c6b5b557f\tok
+io-1.48.0\src\runtime
+\park.rs:285
+  25:     0x7ff6d7b1a
+5c5 - tokio::task::co
+op::with_budget
+                     
+          at C:\Users
+\amesa\.cargo\registr
+y\src\index.crates.io
+-1949cf8c6b5b557f\tok
+io-1.48.0\src\task\co
+op\mod.rs:167
+  26:     0x7ff6d7b1a
+5c5 - tokio::task::co
+op::budget
+                     
+          at C:\Users
+\amesa\.cargo\registr
+y\src\index.crates.io
+-1949cf8c6b5b557f\tok
+io-1.48.0\src\task\co
+op\mod.rs:133
+  27:     0x7ff6d7b1a
+5c5 - tokio::runtime:
+:park::CachedParkThre
+ad::block_on<enum2$<c
+rabby::main::async_bl
+ock_env$0> >
+                     
+          at C:\Users
+\amesa\.cargo\registr
+y\src\index.crates.io
+-1949cf8c6b5b557f\tok
+io-1.48.0\src\runtime
+\park.rs:285
+  28:     0x7ff6d7b5a
+316 - tokio::runtime:
+:context::blocking::B
+lockingRegionGuard::b
+lock_on<enum2$<crabby
+::main::async_block_e
+nv$0> >
+                     
+          at C:\Users
+\amesa\.cargo\registr
+y\src\index.crates.io
+-1949cf8c6b5b557f\tok
+io-1.48.0\src\runtime
+\context\blocking.rs:
+66
+  29:     0x7ff6d7b7b
+679 - tokio::runtime:
+:scheduler::multi_thr
+ead::impl$0::block_on
+::closure$0<enum2$<cr
+abby::main::async_blo
+ck_env$0> >
+                     
+          at C:\Users
+\amesa\.cargo\registr
+y\src\index.crates.io
+-1949cf8c6b5b557f\tok
+io-1.48.0\src\runtime
+\scheduler\multi_thre
+ad\mod.rs:87
+  30:     0x7ff6d7b7e
+48a - tokio::runtime:
+:context::runtime::en
+ter_runtime<tokio::ru
+ntime::scheduler::mul
+ti_thread::impl$0::bl
+ock_on::closure_env$0
+<enum2$<crabby::main:
+:async_block_env$0> >
+,enum2$<core::result:
+:Result<tuple$<>,anyh
+ow::Error> > >
+                     
+          at C:\Users
+\amesa\.cargo\registr
+y\src\index.crates.io
+-1949cf8c6b5b557f\tok
+io-1.48.0\src\runtime
+\context\runtime.rs:6
+5
+  31:     0x7ff6d7b7b
+634 - tokio::runtime:
+:scheduler::multi_thr
+ead::MultiThread::blo
+ck_on<enum2$<crabby::
+main::async_block_env
+$0> >
+                     
+          at C:\Users
+\amesa\.cargo\registr
+y\src\index.crates.io
+-1949cf8c6b5b557f\tok
+io-1.48.0\src\runtime
+\scheduler\multi_thre
+ad\mod.rs:86
+  32:     0x7ff6d7b6f
+926 - tokio::runtime:
+:runtime::Runtime::bl
+ock_on_inner<enum2$<c
+rabby::main::async_bl
+ock_env$0> >
+                     
+          at C:\Users
+\amesa\.cargo\registr
+y\src\index.crates.io
+-1949cf8c6b5b557f\tok
+io-1.48.0\src\runtime
+\runtime.rs:370
+  33:     0x7ff6d7b6f
+aa3 - tokio::runtime:
+:runtime::Runtime::bl
+ock_on<enum2$<crabby:
+:main::async_block_en
+v$0> >
+                     
+          at C:\Users
+\amesa\.cargo\registr
+y\src\index.crates.io
+-1949cf8c6b5b557f\tok
+io-1.48.0\src\runtime
+\runtime.rs:342
+  34:     0x7ff6d7ae8
+da7 - crabby::main
+                     
+          at C:\Users
+\amesa\Desktop\crabby
+\src\main.rs:946
+  35:     0x7ff6d7a86
+2fb - core::ops::func
+tion::FnOnce::call_on
+ce<enum2$<core::resul
+t::Result<tuple$<>,an
+yhow::Error> > (*)(),
+tuple$<> >
+                     
+          at C:\Users
+\amesa\.rustup\toolch
+ains\stable-x86_64-pc
+-windows-msvc\lib\rus
+tlib\src\rust\library
+\core\src\ops\functio
+n.rs:250
+  36:     0x7ff6d7aec
+31e - std::sys::backt
+race::__rust_begin_sh
+ort_backtrace<enum2$<
+core::result::Result<
+tuple$<>,anyhow::Erro
+r> > (*)(),enum2$<cor
+e::result::Result<tup
+le$<>,anyhow::Error> 
+> >
+                     
+          at C:\Users
+\amesa\.rustup\toolch
+ains\stable-x86_64-pc
+-windows-msvc\lib\rus
+tlib\src\rust\library
+\std\src\sys\backtrac
+e.rs:158
+  37:     0x7ff6d7b5b
+341 - std::rt::lang_s
+tart::closure$0<enum2
+$<core::result::Resul
+t<tuple$<>,anyhow::Er
+ror> > >
+                     
+          at C:\Users
+\amesa\.rustup\toolch
+ains\stable-x86_64-pc
+-windows-msvc\lib\rus
+tlib\src\rust\library
+\std\src\rt.rs:206
+  38:     0x7ff6d8251
+5f5 - std::rt::lang_s
+tart_internal::closur
+e$0
+                     
+          at /rustc/e
+d61e7d7e242494fb7057f
+2657300d9e77bb4fcb/li
+brary\std\src\rt.rs:1
+75
+  39:     0x7ff6d8251
+5f5 - std::panicking:
+:catch_unwind::do_cal
+l
+                     
+          at /rustc/e
+d61e7d7e242494fb7057f
+2657300d9e77bb4fcb/li
+brary\std\src\panicki
+ng.rs:590
+  40:     0x7ff6d8251
+5f5 - std::panicking:
+:catch_unwind
+                     
+          at /rustc/e
+d61e7d7e242494fb7057f
+2657300d9e77bb4fcb/li
+brary\std\src\panicki
+ng.rs:553
+  41:     0x7ff6d8251
+5f5 - std::panic::cat
+ch_unwind
+                     
+          at /rustc/e
+d61e7d7e242494fb7057f
+2657300d9e77bb4fcb/li
+brary\std\src\panic.r
+s:359
+  42:     0x7ff6d8251
+5f5 - std::rt::lang_s
+tart_internal
+                     
+          at /rustc/e
+d61e7d7e242494fb7057f
+2657300d9e77bb4fcb/li
+brary\std\src\rt.rs:1
+71
+  43:     0x7ff6d7b5b
+32a - std::rt::lang_s
+tart<enum2$<core::res
+ult::Result<tuple$<>,
+anyhow::Error> > >
+                     
+          at C:\Users
+\amesa\.rustup\toolch
+ains\stable-x86_64-pc
+-windows-msvc\lib\rus
+tlib\src\rust\library
+\std\src\rt.rs:205
+  44:     0x7ff6d7aeb
+479 - main
+  45:     0x7ff6d8358
+b0c - invoke_main
+                     
+          at D:\a\_wo
+rk\1\s\src\vctools\cr
+t\vcstartup\src\start
+up\exe_common.inl:78
+  46:     0x7ff6d8358
+b0c - __scrt_common_m
+ain_seh
+                     
+          at D:\a\_wo
+rk\1\s\src\vctools\cr
+t\vcstartup\src\start
+up\exe_common.inl:288
+  47:     0x7ffb91e1e
+8d7 - BaseThreadInitT
+hunk
+  48:     0x7ffb92fac
+53c - RtlUserThreadSt
+art
+error: process didn't
+ exit successfully: `
+target\debug\crabby.e
+xe --version` (exit c
+ode: 101)

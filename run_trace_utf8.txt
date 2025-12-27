@@ -1,0 +1,351 @@
+﻿­şı│ Cooking: node test.js
+..\target\debug\crabb
+y.exe : C:\Users\ames
+a\Desktop\crabby\test
+_area\test.js:1
+At line:1 char:43
++ ...  test_area; ..\
+target\debug\crabby.e
+xe run test.js > run_
+trace.txt 2> ...
++                 ~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~
+    + CategoryInfo   
+           : NotSpe  
+  cified: (C:\User   
+ s\amesa\..._area    
+\test.js:1:Strin    g
+) [], RemoteExc    ep
+tion
+    + FullyQualified 
+   ErrorId : Native  
+  CommandError
+ 
+´┐¢´┐¢c
+
+
+SyntaxError: Invalid 
+or unexpected token
+    at wrapSafe (node
+:internal/modules/cjs
+/loader:1692:18)
+    at Module._compil
+e (node:internal/modu
+les/cjs/loader:1735:2
+0)
+    at Object..js (no
+de:internal/modules/c
+js/loader:1893:10)
+    at Module.load (n
+ode:internal/modules/
+cjs/loader:1481:32)
+    at Module._load (
+node:internal/modules
+/cjs/loader:1300:12)
+    at TracingChannel
+.traceSync (node:diag
+nostics_channel:328:1
+4)
+    at wrapModuleLoad
+ (node:internal/modul
+es/cjs/loader:245:24)
+    at Module.execute
+UserEntryPoint [as ru
+nMain] (node:internal
+/modules/run_main:154
+:5)
+    at node:internal/
+main/run_main_module:
+33:47
+
+Node.js v24.11.1
+­şöÑ Burnt! Command failed
+Error: Command failed
+ with status: exit co
+de: 1
+
+Stack backtrace:
+   0: std::backtrace_
+rs::backtrace::win64:
+:trace
+             at /rust
+c/ed61e7d7e242494fb70
+57f2657300d9e77bb4fcb
+/library\std\src\..\.
+.\backtrace\src\backt
+race\win64.rs:85
+   1: std::backtrace_
+rs::backtrace::trace_
+unsynchronized
+             at /rust
+c/ed61e7d7e242494fb70
+57f2657300d9e77bb4fcb
+/library\std\src\..\.
+.\backtrace\src\backt
+race\mod.rs:66
+   2: std::backtrace:
+:Backtrace::create
+             at /rust
+c/ed61e7d7e242494fb70
+57f2657300d9e77bb4fcb
+/library\std\src\back
+trace.rs:331
+   3: std::backtrace:
+:Backtrace::capture
+             at /rust
+c/ed61e7d7e242494fb70
+57f2657300d9e77bb4fcb
+/library\std\src\back
+trace.rs:296
+   4: anyhow::Error::
+msg<alloc::string::St
+ring>
+             at C:\Us
+ers\amesa\.cargo\regi
+stry\src\index.crates
+.io-1949cf8c6b5b557f\
+anyhow-1.0.100\src\ba
+cktrace.rs:27
+   5: crabby::runner:
+:run_script_impl
+             at C:\Us
+ers\amesa\Desktop\cra
+bby\src\runner.rs:122
+   6: crabby::runner:
+:run_script
+             at C:\Us
+ers\amesa\Desktop\cra
+bby\src\runner.rs:8
+   7: crabby::main::a
+sync_block$0
+             at C:\Us
+ers\amesa\Desktop\cra
+bby\src\main.rs:425
+   8: tokio::runtime:
+:park::impl$4::block_
+on::closure$0<enum2$<
+crabby::main::async_b
+lock_env$0> >
+             at C:\Us
+ers\amesa\.cargo\regi
+stry\src\index.crates
+.io-1949cf8c6b5b557f\
+tokio-1.48.0\src\runt
+ime\park.rs:285
+   9: tokio::task::co
+op::with_budget
+             at C:\Us
+ers\amesa\.cargo\regi
+stry\src\index.crates
+.io-1949cf8c6b5b557f\
+tokio-1.48.0\src\task
+\coop\mod.rs:167
+  10: tokio::task::co
+op::budget
+             at C:\Us
+ers\amesa\.cargo\regi
+stry\src\index.crates
+.io-1949cf8c6b5b557f\
+tokio-1.48.0\src\task
+\coop\mod.rs:133
+  11: tokio::runtime:
+:park::CachedParkThre
+ad::block_on<enum2$<c
+rabby::main::async_bl
+ock_env$0> >
+             at C:\Us
+ers\amesa\.cargo\regi
+stry\src\index.crates
+.io-1949cf8c6b5b557f\
+tokio-1.48.0\src\runt
+ime\park.rs:285
+  12: tokio::runtime:
+:context::blocking::B
+lockingRegionGuard::b
+lock_on<enum2$<crabby
+::main::async_block_e
+nv$0> >
+             at C:\Us
+ers\amesa\.cargo\regi
+stry\src\index.crates
+.io-1949cf8c6b5b557f\
+tokio-1.48.0\src\runt
+ime\context\blocking.
+rs:66
+  13: tokio::runtime:
+:scheduler::multi_thr
+ead::impl$0::block_on
+::closure$0<enum2$<cr
+abby::main::async_blo
+ck_env$0> >
+             at C:\Us
+ers\amesa\.cargo\regi
+stry\src\index.crates
+.io-1949cf8c6b5b557f\
+tokio-1.48.0\src\runt
+ime\scheduler\multi_t
+hread\mod.rs:87
+  14: tokio::runtime:
+:context::runtime::en
+ter_runtime<tokio::ru
+ntime::scheduler::mul
+ti_thread::impl$0::bl
+ock_on::closure_env$0
+<enum2$<crabby::main:
+:async_block_env$0> >
+,enum2$<core::result:
+:Result<tuple$<>,anyh
+ow::Error> > >
+             at C:\Us
+ers\amesa\.cargo\regi
+stry\src\index.crates
+.io-1949cf8c6b5b557f\
+tokio-1.48.0\src\runt
+ime\context\runtime.r
+s:65
+  15: tokio::runtime:
+:scheduler::multi_thr
+ead::MultiThread::blo
+ck_on<enum2$<crabby::
+main::async_block_env
+$0> >
+             at C:\Us
+ers\amesa\.cargo\regi
+stry\src\index.crates
+.io-1949cf8c6b5b557f\
+tokio-1.48.0\src\runt
+ime\scheduler\multi_t
+hread\mod.rs:86
+  16: tokio::runtime:
+:runtime::Runtime::bl
+ock_on_inner<enum2$<c
+rabby::main::async_bl
+ock_env$0> >
+             at C:\Us
+ers\amesa\.cargo\regi
+stry\src\index.crates
+.io-1949cf8c6b5b557f\
+tokio-1.48.0\src\runt
+ime\runtime.rs:370
+  17: tokio::runtime:
+:runtime::Runtime::bl
+ock_on<enum2$<crabby:
+:main::async_block_en
+v$0> >
+             at C:\Us
+ers\amesa\.cargo\regi
+stry\src\index.crates
+.io-1949cf8c6b5b557f\
+tokio-1.48.0\src\runt
+ime\runtime.rs:342
+  18: crabby::main
+             at C:\Us
+ers\amesa\Desktop\cra
+bby\src\main.rs:946
+  19: core::ops::func
+tion::FnOnce::call_on
+ce<enum2$<core::resul
+t::Result<tuple$<>,an
+yhow::Error> > (*)(),
+tuple$<> >
+             at C:\Us
+ers\amesa\.rustup\too
+lchains\stable-x86_64
+-pc-windows-msvc\lib\
+rustlib\src\rust\libr
+ary\core\src\ops\func
+tion.rs:250
+  20: std::sys::backt
+race::__rust_begin_sh
+ort_backtrace<enum2$<
+core::result::Result<
+tuple$<>,anyhow::Erro
+r> > (*)(),enum2$<cor
+e::result::Result<tup
+le$<>,anyhow::Error> 
+> >
+             at C:\Us
+ers\amesa\.rustup\too
+lchains\stable-x86_64
+-pc-windows-msvc\lib\
+rustlib\src\rust\libr
+ary\std\src\sys\backt
+race.rs:158
+  21: std::rt::lang_s
+tart::closure$0<enum2
+$<core::result::Resul
+t<tuple$<>,anyhow::Er
+ror> > >
+             at C:\Us
+ers\amesa\.rustup\too
+lchains\stable-x86_64
+-pc-windows-msvc\lib\
+rustlib\src\rust\libr
+ary\std\src\rt.rs:206
+  22: std::rt::lang_s
+tart_internal::closur
+e$0
+             at /rust
+c/ed61e7d7e242494fb70
+57f2657300d9e77bb4fcb
+/library\std\src\rt.r
+s:175
+  23: std::panicking:
+:catch_unwind::do_cal
+l
+             at /rust
+c/ed61e7d7e242494fb70
+57f2657300d9e77bb4fcb
+/library\std\src\pani
+cking.rs:590
+  24: std::panicking:
+:catch_unwind
+             at /rust
+c/ed61e7d7e242494fb70
+57f2657300d9e77bb4fcb
+/library\std\src\pani
+cking.rs:553
+  25: std::panic::cat
+ch_unwind
+             at /rust
+c/ed61e7d7e242494fb70
+57f2657300d9e77bb4fcb
+/library\std\src\pani
+c.rs:359
+  26: std::rt::lang_s
+tart_internal
+             at /rust
+c/ed61e7d7e242494fb70
+57f2657300d9e77bb4fcb
+/library\std\src\rt.r
+s:171
+  27: std::rt::lang_s
+tart<enum2$<core::res
+ult::Result<tuple$<>,
+anyhow::Error> > >
+             at C:\Us
+ers\amesa\.rustup\too
+lchains\stable-x86_64
+-pc-windows-msvc\lib\
+rustlib\src\rust\libr
+ary\std\src\rt.rs:205
+  28: main
+  29: invoke_main
+             at D:\a\
+_work\1\s\src\vctools
+\crt\vcstartup\src\st
+artup\exe_common.inl:
+78
+  30: __scrt_common_m
+ain_seh
+             at D:\a\
+_work\1\s\src\vctools
+\crt\vcstartup\src\st
+artup\exe_common.inl:
+288
+  31: BaseThreadInitT
+hunk
+  32: RtlUserThreadSt
+art

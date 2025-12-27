@@ -56,7 +56,7 @@ pub async fn check_vulnerabilities() -> Result<()> {
     }
 
     let mut queries = Vec::new();
-    let mut name_map = Vec::new(); // To track which result belongs to which package
+    let mut name_map = Vec::new(); 
 
     for (name, dep) in &lockfile.dependencies {
         queries.push(OsvQuery {
@@ -69,7 +69,6 @@ pub async fn check_vulnerabilities() -> Result<()> {
         name_map.push((name.clone(), dep.version.clone()));
     }
 
-    // OSV allows up to 1000 queries per batch
     let batch_request = OsvBatchRequest { queries };
 
     let resp = client.post("https://api.osv.dev/v1/querybatch")
@@ -120,7 +119,7 @@ pub async fn check_vulnerabilities() -> Result<()> {
         println!("\n{} No known vulnerabilities found across {} dependencies.", style("✅").bold().green(), lockfile.dependencies.len());
     } else {
         println!("\n{} Found {} vulnerabilities across {} dependencies.", style("🚨").bold().red(), total_vulns, lockfile.dependencies.len());
-        println!("\nRun `crabby update <package>` to fix or research better alternatives.", );
+        println!("\nRun `crabby update <package>` to fix or research better alternatives.");
     }
 
     Ok(())
